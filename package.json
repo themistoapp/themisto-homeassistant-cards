@@ -1,0 +1,20 @@
+{
+  "name": "themisto-cards",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Themisto custom cards for Home Assistant",
+  "scripts": {
+    "dev": "vite --open /dev/index.html",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.5",
+    "lit": "^3.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}

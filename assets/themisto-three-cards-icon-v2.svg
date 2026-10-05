@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="110" y1="72" x2="914" y2="952" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D192B"/>
+      <stop offset="1" stop-color="#050B14"/>
+    </linearGradient>
+    <radialGradient id="leftTint" cx="0" cy="0" r="1" gradientTransform="translate(170 450) rotate(8) scale(460 530)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20C7C0" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#20C7C0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rightTint" cx="0" cy="0" r="1" gradientTransform="translate(860 450) rotate(172) scale(420 500)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#865DFF" stop-opacity=".09"/>
+      <stop offset="1" stop-color="#865DFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#21314A" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#0E192A" stop-opacity=".9"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000814" flood-opacity=".5"/>
+    </filter>
+    <filter id="softGreen" x="-200%" y="-70%" width="500%" height="240%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="softPurple" x="-100%" y="-180%" width="300%" height="460%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="leftClip"><rect x="66" y="288" width="362" height="448" rx="46"/></clipPath>
+    <clipPath id="rightClip"><rect x="596" y="288" width="362" height="448" rx="46"/></clipPath>
+    <clipPath id="centerClip"><rect x="294" y="154" width="436" height="660" rx="52"/></clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <rect width="1024" height="1024" fill="url(#leftTint)"/>
+  <rect width="1024" height="1024" fill="url(#rightTint)"/>
+
+  <g transform="rotate(-5 247 512)" filter="url(#cardShadow)">
+    <rect x="66" y="288" width="362" height="448" rx="46" fill="url(#glass)" stroke="#B8C8DF" stroke-opacity=".34" stroke-width="2"/>
+    <g clip-path="url(#leftClip)">
+      <image href="m140i.webp" x="32" y="436" width="430" height="162" preserveAspectRatio="xMidYMid meet"/>
+    </g>
+  </g>
+
+  <g transform="rotate(5 777 512)" filter="url(#cardShadow)">
+    <rect x="596" y="288" width="362" height="448" rx="46" fill="url(#glass)" stroke="#B8C8DF" stroke-opacity=".34" stroke-width="2"/>
+    <g clip-path="url(#rightClip)">
+      <ellipse cx="777" cy="633" rx="80" ry="24" fill="#8D49FF" opacity=".34" filter="url(#softPurple)"/>
+      <image href="pendant.webp" x="695" y="366" width="164" height="276" preserveAspectRatio="xMidYMid meet"/>
+    </g>
+  </g>
+
+  <g filter="url(#cardShadow)">
+    <rect x="294" y="154" width="436" height="660" rx="52" fill="url(#glass)" stroke="#D2DCEA" stroke-opacity=".4" stroke-width="2"/>
+    <g clip-path="url(#centerClip)">
+      <image href="ecoflow-stream.webp" x="394" y="244" width="236" height="341" preserveAspectRatio="xMidYMid meet"/>
+      <rect x="631" y="423" width="6" height="78" rx="3" fill="#52F38A" opacity=".38" filter="url(#softGreen)"/>
+      <rect x="632" y="462" width="4" height="39" rx="2" fill="#52F38A"/>
+    </g>
+  </g>
+</svg>

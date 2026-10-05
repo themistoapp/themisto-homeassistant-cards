@@ -1,0 +1,71 @@
+# Example sections dashboard. Entity IDs are examples: swap in your own, or set the cards up in the visual editor instead.
+type: sections
+max_columns: 4
+title: Home
+badges:
+  - type: custom:themisto-status-badge
+    entity: lock.m140i_lock
+    name: M140i
+  - type: custom:themisto-status-badge
+    entity: binary_sensor.udm_internet
+    name: Internet
+sections:
+  - type: grid
+    cards:
+      - type: custom:themisto-thermostat-card
+        entity: climate.living_room
+        layout: large
+        grid_options: { columns: 6, rows: 5 }
+        presets:
+          - { name: Night, icon: moon, temperature: 16 }
+          - { name: Eco, icon: leaf, temperature: 18 }
+          - { name: Comfort, icon: heart, temperature: 21.5 }
+          - { name: Boost, icon: bolt, temperature: 23 }
+      - type: custom:themisto-light-list-card
+        name: Living room
+        grid_options: { columns: 6 }
+        lights:
+          - entity: light.ceiling
+          - entity: light.floor_lamp
+          - entity: light.reading_lamp
+
+  - type: grid
+    cards:
+      - type: custom:themisto-sensor-card
+        entity: sensor.solar_power
+        kicker: Generation
+        accent: amber
+        status: Generating
+        grid_options: { columns: 12, rows: 4 }
+        stats:
+          - { entity: sensor.solar_energy_today, label: Today }
+          - { computed: max, label: Peak }
+      - type: custom:themisto-media-card
+        entity: media_player.kitchen
+        layout: standard
+        grid_options: { columns: 12, rows: 4 }
+
+  - type: grid
+    cards:
+      - type: custom:themisto-vehicle-card
+        name: M140i
+        fuel_type: ice
+        image: /local/themisto/m140i.webp
+        level: sensor.m140i_remaining_fuel_percent
+        range: sensor.m140i_remaining_range_total
+        odometer: sensor.m140i_mileage
+        lock: lock.m140i_lock
+        doors: binary_sensor.m140i_lids
+        windows: binary_sensor.m140i_windows
+        location: device_tracker.m140i
+        grid_options: { columns: 6, rows: 6 }
+      - type: custom:themisto-unifi-card
+        wan_status: binary_sensor.udm_internet
+        download: sensor.udm_wan_download
+        upload: sensor.udm_wan_upload
+        clients_total: sensor.udm_clients
+        grid_options: { columns: 6, rows: 4 }
+      - type: custom:themisto-portainer-card
+        device: REPLACE_WITH_PORTAINER_DEVICE_ID
+        max_rows: 6
+        grid_options: { columns: 6 }
