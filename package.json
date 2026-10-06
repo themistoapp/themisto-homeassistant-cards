@@ -1,6 +1,6 @@
 {
   "name": "themisto-cards",
-  "version": "2.0.0",
+  "version": "2.14.0",
   "private": true,
   "type": "module",
   "description": "Themisto custom cards for Home Assistant",

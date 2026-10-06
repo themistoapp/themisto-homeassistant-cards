@@ -28,29 +28,29 @@ export class TmSlider extends LitElement {
     this.value = 0; this.min = 0; this.max = 100; this.step = 1; this.label = ""; this.icon = ""; this.disabled = false;
   }
 
+  /* A plain 6px bar, like the Now Playing progress bar: no grab handle. The whole 36px row is the
+     touch target, and the icon sits outside the bar. --slider-color sets the fill. */
   static override styles = css`
-    :host { --h: 30px; display: block; height: var(--h); flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
-    .sl { position: relative; height: 100%; border-radius: 99px; background: var(--tm-read-2); border: 1px solid var(--tm-line); cursor: pointer; overflow: hidden; outline: none; }
+    :host { display: block; height: 36px; flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .sl { position: relative; height: 100%; display: flex; align-items: center; gap: 10px; cursor: pointer; outline: none; border-radius: var(--tm-radius-icon-sm); }
     .sl:focus-visible { outline: 2px solid var(--tm-accent); outline-offset: 2px; }
     :host([disabled]) .sl { cursor: default; opacity: .45; }
-    /* The fill is never narrower than a circle the height of the track, so at the minimum the icon
-       sits centred in it; the rest of the track maps to the value. */
-    .f { position: absolute; inset: 0 auto 0 0; width: calc(var(--h) + (100% - var(--h)) * var(--p) / 100); background: color-mix(in srgb, var(--slider-color, var(--tm-accent)) 82%, transparent); border-radius: 99px; transition: width .15s ease; }
+    .tr { position: relative; flex: 1; min-width: 0; height: 6px; border-radius: 99px; background: var(--tm-line); overflow: hidden; }
+    .f { position: absolute; inset: 0 auto 0 0; width: calc(var(--p) * 1%); background: var(--slider-color, var(--tm-text-2)); border-radius: inherit; transition: width .15s ease; }
     .drag .f { transition: none; }
-    /* Handle line fades in once the fill has moved clear of the icon. */
-    .f::after { content: ""; position: absolute; right: 8px; top: 50%; width: 3px; height: 12px; margin-top: -6px; border-radius: 2px; background: var(--slider-ink, rgba(255,255,255,.9)); opacity: clamp(0, (var(--p) - 6) / 6, 1); }
-    .l { position: absolute; inset: 0 auto 0 0; width: var(--h); display: grid; place-items: center; color: var(--slider-ink, var(--tm-text)); pointer-events: none; }
-    svg, ha-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; --mdc-icon-size: 15px; }
+    .l { flex: none; display: grid; place-items: center; color: var(--tm-muted); pointer-events: none; }
+    svg, ha-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; --mdc-icon-size: 16px; }
     @media (prefers-reduced-motion: reduce) { .f { transition: none; } }
   `;
+
 
   get shown() {
     return this._local !== undefined && (this._dragging || Date.now() < this._holdUntil) ? this._local : this.value;
   }
 
+  /** Maps a pointer x onto the bar (not the icon beside it). */
   private fromX(x: number, rect: DOMRect) {
-    // Inverse of the fill width: the first track-height of the bar is the minimum.
-    const h = rect.height, frac = clamp((x - rect.left - h / 2) / Math.max(rect.width - h, 1), 0, 1);
+    const frac = clamp((x - rect.left) / Math.max(rect.width, 1), 0, 1);
     const raw = this.min + frac * (this.max - this.min);
     return clamp(Math.round(raw / this.step) * this.step, this.min, this.max);
   }
@@ -71,7 +71,7 @@ export class TmSlider extends LitElement {
   private down(e: PointerEvent) {
     if (this.disabled || e.button !== 0) return;
     const el = e.currentTarget as HTMLElement;
-    const rect = el.getBoundingClientRect();
+    const rect = (el.querySelector(".tr") as HTMLElement).getBoundingClientRect();
     el.setPointerCapture(e.pointerId);
     this._dragging = true;
     el.classList.add("drag");
@@ -102,8 +102,8 @@ export class TmSlider extends LitElement {
     const pct = ((v - this.min) / (this.max - this.min || 1)) * 100;
     return html`<div class="sl" role="slider" tabindex=${this.disabled ? -1 : 0} aria-label=${this.label} aria-valuemin=${this.min} aria-valuemax=${this.max} aria-valuenow=${v}
       aria-disabled=${this.disabled} style="--p:${pct}" @pointerdown=${this.down} @keydown=${this.key}>
-      <div class="f"></div>
       ${this.icon ? html`<div class="l">${icon(this.icon)}</div>` : nothing}
+      <div class="tr"><div class="f"></div></div>
     </div>`;
   }
 }

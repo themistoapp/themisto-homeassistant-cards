@@ -18,7 +18,7 @@ export function makeStates(mode: Mode): Record<string, HassEntity> {
     // climate
     ent("climate.living_room", "heat", { friendly_name: W ? "Downstairs living room & kitchen" : "Living room", hvac_modes: ["off", "heat"], hvac_action: "heating", current_temperature: 20.1, temperature: 21.5, current_humidity: 45, min_temp: 7, max_temp: 30, target_temp_step: 0.5 }),
     ent("climate.bedroom", U ? "unavailable" : "off", { friendly_name: "Bedroom", hvac_modes: ["off", "heat"], hvac_action: "off", current_temperature: 18.4, temperature: 18, current_humidity: 52, min_temp: 7, max_temp: 30, target_temp_step: 0.5 }),
-    ent("climate.office", "heat", { friendly_name: W ? "Garden office annexe" : "Office", hvac_modes: ["off", "heat"], hvac_action: "idle", current_temperature: 20.4, temperature: 20, min_temp: 7, max_temp: 30, target_temp_step: 0.5 }),
+    ent("climate.office", "heat", { friendly_name: W ? "Garden office annexe" : "Office", hvac_modes: ["off", "heat"], hvac_action: "idle", preset_mode: "eco", current_temperature: 20.4, temperature: 20, min_temp: 7, max_temp: 30, target_temp_step: 0.5 }),
     // sensors
     ent("sensor.solar_power", W ? 12300 : 3420, { friendly_name: "Solar", unit_of_measurement: "W", device_class: "power", state_class: "measurement" }),
     ent("sensor.solar_energy_today", W ? 128.4 : 12.1, { friendly_name: "Solar today", unit_of_measurement: "kWh", device_class: "energy" }),

@@ -51,7 +51,7 @@ export class ThemistoSensorCard extends ThemistoCard<SensorConfig> {
       .main { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
       .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .stats .stat:nth-child(n+3) { display: none; }
-      button.stat { cursor: pointer; border-radius: 8px; }
+      button.stat { cursor: pointer; border-radius: var(--tm-radius-icon-sm); }
       @container (min-width: 480px) {
         .se.has-stats { grid-template-columns: minmax(0, 1fr) minmax(150px, 34%); grid-template-rows: minmax(0, 1fr); }
         .stats { grid-template-columns: 1fr; align-content: center; gap: 0; border-left: 1px solid var(--tm-line); padding-left: 16px; }
@@ -59,7 +59,6 @@ export class ThemistoSensorCard extends ThemistoCard<SensorConfig> {
         .stats .stat { grid-template-columns: 1fr auto; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--tm-line); }
         .stats .stat:last-child { border-bottom: 0; }
       }
-      .compact .hero { --hero: 30px; }
       .compact .spark { flex: 1; min-width: 0; height: 40px; display: flex; }
       @container (max-width: 250px) { .compact .chip { display: none; } .stats { grid-template-columns: 1fr; } .stats .stat:nth-child(n+2) { display: none; } }
       tm-graph { --graph-color: var(--c); }
@@ -95,7 +94,7 @@ export class ThemistoSensorCard extends ThemistoCard<SensorConfig> {
           grid(numberField("above", -1e9, 1e9, 0.01), textField("above_status")), colour("above_colour"),
           grid(numberField("below", -1e9, 1e9, 0.01), textField("below_status")), colour("below_colour"),
         ], { icon: "mdi:label-outline" }),
-        appearance(["compact", "standard", "large"], [colour("accent")]),
+        appearance(["compact", "standard", ["large", "Wide"]], [colour("accent")]),
         actions(),
       ],
       labels: { attribute: "Use an attribute instead of the state", unit: "Unit override", decimals: "Decimal places", scale_power: "Scale W to kW automatically", show_graph: "Show graph", graph_type: "Graph style", hours: "Graph history", graph_colour: "Graph colour", stats: "Stats", show_chip: "Show chip", status: "Chip text", status_colour: "Chip colour", above: "Above", above_status: "Text when above", above_colour: "Colour when above", below: "Below", below_status: "Text when below", below_colour: "Colour when below", accent: "Icon colour" },

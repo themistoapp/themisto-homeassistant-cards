@@ -12,6 +12,10 @@ const C = (type: string, cols: number, rows: number | undefined, config: Record<
 const containers = ["portainer", "nginx-proxy-manager"];
 
 const SECTIONS: Section[] = [
+  { id: "heading", title: "Heading", cells: [
+    C("heading", 12, undefined, { name: "Downstairs", kicker: "Good evening", size: "page", pills: [{ entity: "lock.m140i_lock", name: "Secure" }, { entity: "light.ceiling" }, { entity: "binary_sensor.udm_internet" }] }),
+    C("heading", 12, undefined, { name: "Energy", size: "section" }),
+  ] },
   { id: "thermostat", title: "Thermostat", cells: [
     C("thermostat", 6, 2, { entity: "climate.bedroom", layout: "compact" }),
     C("thermostat", 6, 2, { entity: "climate.office", layout: "compact" }),
@@ -29,7 +33,7 @@ const SECTIONS: Section[] = [
     layout, image: "/dev/ecoflow-stream.webp", glow_colour: layout === "standard" ? "blue" : "green",
     grid_power: "sensor.stream_grid_power", grid_energy: "sensor.stream_grid_energy_today", grid_cost: "sensor.stream_grid_cost_today",
     solar_power: "sensor.stream_solar_power", solar_energy: "sensor.stream_solar_energy_today",
-    battery_power: "sensor.stream_battery_power", battery_soc: "sensor.stream_battery_soc", home_power: "sensor.stream_home_power",
+    battery_power: "sensor.stream_battery_power", battery_soc: "sensor.stream_battery_soc", home_power: "sensor.stream_home_power", solar_peak: 4.2,
   })) },
   { id: "charger", title: "EV charger", cells: [
     C("charger", 12, 4, { cost: "sensor.indra_session_cost", entity: "sensor.indra_status", name: "Driveway", layout: "large", image: "/dev/indra.webp", power: "sensor.indra_power", energy: "sensor.indra_session_energy" }),

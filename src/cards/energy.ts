@@ -12,7 +12,9 @@ export interface EnergyConfig extends BaseConfig {
   solar_power?: string; solar_energy?: string; solar_name?: string; solar_colour?: string;
   battery_power?: string; battery_soc?: string; battery_invert?: boolean; battery_name?: string; battery_colour?: string;
   home_power?: string; home_energy?: string; home_name?: string; home_colour?: string;
-  image?: string; image_entity?: string; show_image?: boolean; show_chip?: boolean;
+  image?: string; image_entity?: string; show_image?: boolean;
+  /** The solar system's peak output in kW; sets the solar tile's bar. */
+  solar_peak?: number;
   /** Glow on the unit's light bar, filled to the battery's state of charge. Positions are % of the image. */
   soc_glow?: boolean; glow_colour?: "green" | "blue"; glow_x?: number; glow_top?: number; glow_bottom?: number; glow_width?: number;
   /** Below this many watts a flow counts as idle. */
@@ -63,22 +65,26 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
         box-shadow: 0 0 4px 1px var(--gc), 0 0 14px 4px color-mix(in srgb, var(--gc) 55%, transparent); transition: height .6s ease; }
       .lb.chg .fill { animation: breathe 2.4s ease-in-out infinite; }
       @keyframes breathe { 50% { box-shadow: 0 0 2px 0 var(--gc), 0 0 8px 2px color-mix(in srgb, var(--gc) 35%, transparent); opacity: .75; } }
-      .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(88px, 1fr); gap: 8px; min-height: 0; }
+      .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(64px, 1fr); gap: 8px; min-height: 0; }
       .tiles.n1 { grid-template-columns: minmax(0, 1fr); }
-      .t { display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-width: 0; min-height: 0; padding: 10px 12px; border-radius: 14px; background: var(--tm-read-2); text-align: left; cursor: pointer; overflow: hidden; }
-      .t:hover { box-shadow: inset 0 0 0 1px var(--tm-line-strong); }
-      .t .top { display: flex; align-items: center; gap: 7px; min-width: 0; }
-      .t .ic { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 8px; color: var(--tc); background: color-mix(in srgb, var(--tc) 16%, transparent); }
-      .t .ic svg, .t .ic ha-icon { width: 14px; height: 14px; }
-      .t .lbl { flex: 1; min-width: 0; font: 900 13px/1.1 var(--tm-display); text-transform: uppercase; color: var(--tm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-block: 0.08em; }
-      .t .chip { height: 20px; padding: 0 7px; gap: 5px; font-size: 10.5px; }
-      .t .chip > i { width: 5px; height: 5px; }
-      .t .hero { --hero: 26px; padding-block: 0.06em; }
-      .t .sub { font-size: 10.5px; }
-      .soc { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
-      .soc .bar { flex: 1; height: 6px; border-radius: 99px; background: var(--tm-line); overflow: hidden; }
-      .soc .bar i { display: block; height: 100%; border-radius: inherit; background: var(--tc); }
-      .soc .sv { font-size: 12px; }
+      /* A tile is a panel: the icon says what it is (no name), then the figure and its detail. The
+         icon sits beside the figure; on narrow standard cards it sits above, so the detail line keeps
+         its width. */
+      .t { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; align-items: center; column-gap: 12px; row-gap: 3px; min-width: 0; min-height: 0; padding: 10px 12px; text-align: left; cursor: pointer; overflow: hidden; }
+      .t:hover { border-color: var(--tm-line-strong); }
+      .t > .itile { grid-row: 1 / span 3; }
+      .t > :not(.itile) { grid-column: 2; min-width: 0; }
+      .t.idle .itile { --c: var(--tm-idle) !important; }
+      .t .hero { --hero: var(--tm-fs-card); padding-block: 0.06em; }
+      .bar { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+      .bar .meter { flex: 1; }
+      .bar .sv { font-size: var(--tm-fs-small); }
+      .bar.chg .meter > i { background: repeating-linear-gradient(-45deg, var(--mc) 0 6px, color-mix(in srgb, var(--mc) 70%, #fff) 6px 12px); background-size: 17px 17px; animation: chg 1s linear infinite; }
+      @keyframes chg { to { background-position: 17px 0; } }
+      ha-card[data-l="compact"] .t { column-gap: 10px; padding: 8px 10px; }
+      ha-card[data-l="compact"] .t .itile { width: 28px; height: 28px; border-radius: var(--tm-radius-icon-sm); }
+      ha-card[data-l="compact"] .t .itile svg, ha-card[data-l="compact"] .t .itile ha-icon { width: 16px; height: 16px; }
+      ha-card[data-l="compact"] .t .sub { display: none; }
       /* Wide cards: image in its own column on the left. */
       /* Wide cards: title and image share the left column; tiles get the full height on the right. */
       .side { display: contents; }
@@ -89,9 +95,24 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
         .en.has-img .side .hd > .titles { flex: none; width: 100%; }
         .en.has-img .side .img { flex: 1; }
       }
-      @container (max-width: 360px) { .t .chip { display: none; } }
-      @container (max-width: 300px) { .t { padding: 8px 9px; } .t .hero { --hero: 21px; } }
-      @container (max-width: 230px) { .tiles { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(72px, 1fr); } }
+      @container (max-width: 400px) {
+        ha-card[data-l="standard"] .t { grid-template-columns: minmax(0, 1fr); align-content: space-between; }
+        ha-card[data-l="standard"] .t > .itile { grid-row: auto; width: 28px; height: 28px; border-radius: var(--tm-radius-icon-sm); }
+        ha-card[data-l="standard"] .t > .itile svg, ha-card[data-l="standard"] .t > .itile ha-icon { width: 16px; height: 16px; }
+        ha-card[data-l="standard"] .t > :not(.itile) { grid-column: 1; }
+      }
+      /* A wide card squeezed onto a phone has no room for the picture. */
+      @container (max-width: 479px) { ha-card[data-l="large"] .en.has-img { grid-template-rows: auto minmax(0, 1fr); } ha-card[data-l="large"] .en .img { display: none; } }
+      /* Phone width (a half-width card is ~185px): one column of tiles, icon beside the figure, no picture. */
+      @container (max-width: 230px) {
+        .en.has-img { grid-template-rows: auto minmax(0, 1fr); } .en .img { display: none; }
+        .tiles, .tiles.n4 { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); gap: 6px; }
+        ha-card:not([data-l="compact"]) .t, .t { grid-template-columns: auto minmax(0, 1fr); align-content: center; column-gap: 10px; padding: 4px 10px; }
+        ha-card:not([data-l="compact"]) .t > .itile, .t > .itile { grid-row: 1 / span 3; }
+        ha-card:not([data-l="compact"]) .t > :not(.itile), .t > :not(.itile) { grid-column: 2; }
+        ha-card[data-l="compact"] .t { row-gap: 0; padding: 3px 10px; }
+        ha-card[data-l="compact"] .t .bar { display: none; }
+      }
     `,
   ];
 
@@ -125,12 +146,12 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
       schema: [
         ...titleFields(false),
         tile("grid", "Grid", "mdi:transmission-tower", [entity("grid_energy", "sensor"), entity("grid_cost", "sensor")], true),
-        tile("solar", "Solar", "mdi:solar-power", [entity("solar_energy", "sensor")]),
+        tile("solar", "Solar", "mdi:solar-power", [entity("solar_energy", "sensor"), numberField("solar_peak", 0.1, 100, 0.1, "kW")]),
         tile("battery", "Battery", "mdi:home-battery", [entity("battery_soc", "sensor")], true),
         tile("home", "Home", "mdi:home-lightning-bolt", [entity("home_energy", "sensor")]),
         section("Image", [bool("show_image"), textField("image"), entity("image_entity"), grid(bool("soc_glow"), choose("glow_colour", [["green", "Green"], ["blue", "Blue"]])),
           grid(numberField("glow_x", 0, 100, 0.1, "%"), numberField("glow_width", 0.2, 10, 0.1, "%")), grid(numberField("glow_top", 0, 100, 0.1, "%"), numberField("glow_bottom", 0, 100, 0.1, "%"))], { icon: "mdi:image-outline" }),
-        appearance(["compact", "standard", ["large", "Wide"]], [grid(bool("show_chip"), numberField("idle_watts", 0, 500, 1, "W"))]),
+        appearance(["compact", "standard", ["large", "Wide"]], [numberField("idle_watts", 0, 500, 1, "W")]),
         actions(),
       ],
       labels: {
@@ -140,12 +161,13 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
         home_power: "Power now", home_energy: "Energy today (optional)",
         grid_name: "Label", solar_name: "Label", battery_name: "Label", home_name: "Label",
         grid_colour: "Colour", solar_colour: "Colour", battery_colour: "Colour", home_colour: "Colour",
-        show_image: "Show image", soc_glow: "Light bar glows with the battery level", glow_colour: "Light bar colour", glow_x: "Light bar across", glow_width: "Light bar width", glow_top: "Light bar top", glow_bottom: "Light bar bottom", image: "Image URL", image_entity: "…or an entity with a picture", show_chip: "Grid status chip", idle_watts: "Count as idle below",
+        show_image: "Show image", soc_glow: "Light bar glows with the battery level", glow_colour: "Light bar colour", glow_x: "Light bar across", glow_width: "Light bar width", glow_top: "Light bar top", glow_bottom: "Light bar bottom", image: "Image URL", image_entity: "…or an entity with a picture", solar_peak: "Peak output", idle_watts: "Count as idle below",
       },
       helpers: {
         grid_invert: "Turn on if the grid sensor goes negative when you're importing.",
         battery_invert: "Turn on if the battery sensor goes negative when it's discharging.",
         image: "e.g. https://themisto.app/home-assistant/cards/ecoflow-stream.webp",
+        solar_peak: "Your system's maximum output, e.g. 4.2 kW. Shows a bar of output against it; leave blank for none.",
         soc_glow: "Fills the unit's light strip from the bottom to the state of charge. Needs the battery state of charge sensor.",
         glow_x: "Positions are percentages of the image. The defaults line up with the EcoFlow STREAM image; leave them blank for that.",
         name: "Leave blank for \"Energy\". A single space hides it.",
@@ -164,15 +186,21 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
     return `${m.value}${m.unit ? ` ${m.unit}` : ""}${suffix}`;
   }
 
-  private tile(key: "grid" | "solar" | "battery" | "home", label: string, ic: string, col: string, dirText: string, f: Flow, w: number, sub: unknown) {
+  /** One tile: icon (what it is), figure, then a meter and/or detail line. The name and direction stay in the accessible label. */
+  private tile(key: "grid" | "solar" | "battery" | "home", label: string, ic: string, col: string, dirText: string, f: Flow, w: number, ...below: unknown[]) {
     const c = this._config!;
     const id = c[`${key}_power`];
     const p = Number.isFinite(w) ? formatPower(this._hass, Math.abs(w)) : { value: "–", unit: "" };
-    return html`<button class="t ${f === "idle" ? "idle" : ""}" style="--tc:${col}" @click=${() => this.elementAction(id)} aria-label="${label}: ${p.value} ${p.unit}">
-      <div class="top"><span class="ic">${icon(ic)}</span><span class="lbl">${label}</span>${dirText ? html`<span class="chip" style="--cc:${f === "idle" ? "var(--tm-idle)" : col}"><i></i>${dirText}</span>` : nothing}</div>
+    return html`<button class="t panel ${f === "idle" ? "idle" : ""}" @click=${() => this.elementAction(id)} aria-label="${[label, dirText].filter(Boolean).join(", ")}: ${p.value} ${p.unit}">
+      <span class="itile" style="--c:${col}">${icon(ic)}</span>
       <span class="hero">${p.value}${p.unit ? html`<span class="u">${p.unit}</span>` : nothing}</span>
-      ${sub || nothing}
+      ${below.filter((b) => b && b !== nothing)}
     </button>`;
+  }
+
+  private bar(pct: number, colour: string, charging = false) {
+    const v = Math.max(0, Math.min(100, pct));
+    return html`<div class="bar ${charging ? "chg" : ""}"><div class="meter" style="--mc:${colour}"><i style="width:${v}%"></i></div><span class="sv">${Math.round(v)}%</span></div>`;
   }
 
   override render() {
@@ -184,7 +212,8 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
     if (c.grid_power) {
       gridW = this.power(c.grid_power);
       gridFlow = flow(gridW, c.grid_invert, idle);
-      const sub = [this.extra(c.grid_energy), this.extra(c.grid_cost)].filter(Boolean).join(" · ");
+      // Importing is the usual case; only exporting is written out.
+      const sub = [gridFlow === "out" ? "Exporting" : "", this.extra(c.grid_energy), this.extra(c.grid_cost)].filter(Boolean).join(" · ");
       tiles.push(this.tile("grid", this.t(c.grid_name, "Grid"), "grid", this.colour(c.grid_colour, "var(--tm-grid)"),
         { in: "Importing", out: "Exporting", idle: "Idle" }[gridFlow], gridFlow, gridW, sub ? html`<span class="sub">${sub}</span>` : nothing));
     }
@@ -192,8 +221,12 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
       const w = this.power(c.solar_power);
       const on = Number.isFinite(w) && w >= idle;
       const sub = this.extra(c.solar_energy, " today");
-      tiles.push(this.tile("solar", this.t(c.solar_name, "Solar"), "solar", this.colour(c.solar_colour, "var(--tm-solar)"),
-        on ? "Generating" : "Idle", on ? "in" : "idle", w, sub ? html`<span class="sub">${sub}</span>` : nothing));
+      const col = this.colour(c.solar_colour, "var(--tm-solar)");
+      // Output against the system's peak, when the peak is set.
+      const peak = num(c.solar_peak) * 1000;
+      const meter = peak > 0 && Number.isFinite(w) ? this.bar((Math.max(0, w) / peak) * 100, col) : nothing;
+      tiles.push(this.tile("solar", this.t(c.solar_name, "Solar"), "solar", col,
+        on ? "Generating" : "Idle", on ? "in" : "idle", w, meter, sub ? html`<span class="sub">${sub}</span>` : nothing));
     }
     let batteryCharging = false;
     if (c.battery_power) {
@@ -203,9 +236,8 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
       const soc = num(this.stateOf(c.battery_soc)?.state);
       const col = this.colour(c.battery_colour, "var(--tm-ok)");
       const barCol = soc < 15 ? "var(--tm-bad)" : soc < 30 ? "var(--tm-warn)" : col;
-      const sub = c.battery_soc && Number.isFinite(soc)
-        ? html`<div class="soc"><div class="bar"><i style="width:${Math.max(0, Math.min(100, soc))}%;background:${barCol}"></i></div><span class="sv">${Math.round(soc)}%</span></div>` : nothing;
-      tiles.push(this.tile("battery", this.t(c.battery_name, "Battery"), "battery", col, { in: "Discharging", out: "Charging", idle: "Idle" }[f], f, w, sub));
+      const meter = c.battery_soc && Number.isFinite(soc) ? this.bar(soc, barCol, f === "out") : nothing;
+      tiles.push(this.tile("battery", this.t(c.battery_name, "Battery"), "battery", col, { in: "Discharging", out: "Charging", idle: "Idle" }[f], f, w, meter));
     }
     if (c.home_power) {
       const w = this.power(c.home_power);
@@ -217,12 +249,9 @@ export class ThemistoEnergyCard extends ThemistoCard<EnergyConfig> {
     const pic = c.image_entity ? this.stateOf(c.image_entity)?.attributes.entity_picture : undefined;
     const src = pic || c.image?.trim();
     const showImg = !!src && c.show_image !== false && this.cardLayout !== "compact";
-    const chip = c.show_chip !== false && c.grid_power && Number.isFinite(gridW)
-      ? html`<span class="chip" style="--cc:${gridFlow === "out" ? "var(--tm-ok)" : gridFlow === "in" ? this.colour(c.grid_colour, "var(--tm-grid)") : "var(--tm-idle)"}"><i></i>${
-        gridFlow === "idle" ? "Off grid" : gridFlow === "out" ? "Exporting" : "Importing"}</span>` : nothing;
 
     return this.shell(html`<div class="in en ${showImg ? "has-img" : ""}">
-      <div class="side">${this.header(this.t(c.kicker, "Home energy"), this.t(c.name, "Energy"), chip)}
+      <div class="side">${this.header(this.t(c.kicker, "Home energy"), this.t(c.name, "Energy"))}
       ${showImg ? html`<div class="img"><tm-fit .ratio=${this._ratio || 0.69}>
         <img src=${src} alt="" @load=${(e: Event) => { const i = e.target as HTMLImageElement; if (i.naturalHeight) this._ratio = i.naturalWidth / i.naturalHeight; }}>
         ${this.glow(c.battery_soc, batteryCharging)}</tm-fit></div>` : nothing}</div>

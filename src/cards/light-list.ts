@@ -15,7 +15,6 @@ interface Row { entity: string; name?: string; icon?: string; light_type?: Light
 export interface LightListConfig extends BaseConfig {
   lights: (Row | string)[];
   show_all_off?: boolean;
-  show_count?: boolean;
   sort?: "config" | "on_first" | "name";
   hide_unavailable?: boolean;
   columns?: "auto" | "1" | "2";
@@ -39,8 +38,7 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
       ha-card { --lamp: var(--tm-on); --lamp-ink: var(--tm-on-ink); }
       .rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
       @container (min-width: 480px) { .rows.c-auto, .rows.c-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
-      .r { border-radius: 12px; background: var(--tm-read-2); border: 1px solid transparent; }
-      .r.open { border-color: var(--tm-line); }
+      .r.open { border-color: var(--tm-line-strong); }
       .main { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px; cursor: pointer; user-select: none; -webkit-user-select: none; }
       .r.na { opacity: .55; } .r.na .main { cursor: default; }
       .chev { color: var(--tm-muted); transition: transform .15s; display: grid; } .chev svg { width: 16px; height: 16px; }
@@ -48,8 +46,7 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
       .exp { display: grid; gap: 10px; padding: 2px 10px 12px; }
       .sw.on { --on: var(--lamp); }
       ha-card[style*="--lamp"] .sw.on { --on-knob: #fff; }
-      tm-slider { --slider-color: var(--lamp); --slider-ink: var(--lamp-ink); }
-      .lh { display: grid; gap: 6px; }
+      tm-slider { --slider-color: var(--lamp); }
       .slot { display: grid; place-items: center; width: 34px; height: 34px; flex: none; }
       @container (max-width: 230px) { .main .itile, .main .slot { display: none; } .main { gap: 6px; padding: 0 6px 0 10px; } .chev { display: none; } }
     `,
@@ -77,7 +74,7 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
         grid(textField("name"), textField("kicker")),
         list("lights", { entity: { ...entity("entity", "light"), label: "Light", required: true }, name: { ...textField("name"), label: "Name" }, icon: { ...iconField(), label: "Icon" }, light_type: { ...lightTypeField(), label: "Light type" } }, "name", "entity"),
         { type: "expandable", name: "", flatten: true, title: "Options", icon: "mdi:tune-variant", schema: [
-          grid(bool("show_count"), bool("show_all_off")),
+          bool("show_all_off"),
           grid(choose("sort", [["config", "As listed"], ["on_first", "On first"], ["name", "By name"]]), choose("columns", [["auto", "Auto"], ["1", "One"], ["2", "Two (wide cards)"]])),
           bool("hide_unavailable"),
           list("colour_presets", { color: { ...colour("color"), label: "Colour", required: true }, name: { ...textField("name"), label: "Name" } }, "name", "color"),
@@ -85,7 +82,7 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
         appearance([], [lightTypeField(), colour("on_colour")]),
         actions(),
       ],
-      labels: { lights: "Lights", show_count: "Show \"3 of 5 on\" chip", show_all_off: "Show All off button", sort: "Order", columns: "Columns", hide_unavailable: "Hide unavailable lights", colour_presets: "Colour presets (for colour lights)", on_colour: "Colour when on", light_type: "Light type (all rows)" },
+      labels: { lights: "Lights", show_all_off: "Show All off button", sort: "Order", columns: "Columns", hide_unavailable: "Hide unavailable lights", colour_presets: "Colour presets (for colour lights)", on_colour: "Colour when on", light_type: "Light type (all rows)" },
       helpers: { lights: "Tap a dimmable row to open brightness and colour controls. Rows that can't dim just switch on and off." },
     };
   }
@@ -105,7 +102,7 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
     const down = () => { h.held = false; h.timer = window.setTimeout(() => { h.held = true; runAction(this, { entity: r.entity, hold_action: { action: "more-info" } }, "hold"); }, 500); };
     const up = () => clearTimeout(h.timer);
     const tap = () => { if (h.held || na) return; if (canOpen) this._open = open ? undefined : r.entity; else toggle(); };
-    return html`<div class="r ${open ? "open" : ""} ${na ? "na" : ""}">
+    return html`<div class="r panel ${open ? "open" : ""} ${na ? "na" : ""}">
       <div class="main" data-own role="button" tabindex="0" aria-expanded=${canOpen ? String(open) : nothing} @pointerdown=${down} @pointerup=${up} @pointerleave=${up} @click=${tap}
         @keydown=${(e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), tap())} @contextmenu=${(e: Event) => e.preventDefault()}>
         ${hasFixture(type) && !na ? html`<span class="slot">${fixture(type, s, { w: 34, h: 32 }, c.on_colour && this.colour(c.on_colour, ""))}</span>` : html`<span class="itile sm lamp ${on ? "on" : ""}">${icon(r.icon, "bulb")}</span>`}
@@ -132,13 +129,9 @@ export class ThemistoLightListCard extends ThemistoCard<LightListConfig> {
     const avail = rows.filter(({ s }) => s && !isUnavailable(s));
     const nOn = avail.filter(({ s }) => s!.state === "on").length;
     const kicker = this.t(c.kicker, "Lights"), title = this.t(c.name, "");
-    const chip = c.show_count !== false ? html`<span class="chip" style="--cc:${nOn ? "var(--lamp)" : "var(--tm-idle)"}"><i></i>${nOn} of ${avail.length} on</span>` : nothing;
     const allOff = c.show_all_off !== false ? html`<button class="pbtn" ?disabled=${!nOn} @click=${() => this.call("light", "turn_off", { entity_id: avail.filter(({ s }) => s!.state === "on").map(({ r }) => r.entity) })}>All off</button>` : nothing;
     return this.shell(html`<div class="in">
-      ${kicker || chip !== nothing || title || allOff !== nothing ? html`<div class="lh">
-        ${kicker || chip !== nothing ? html`<div class="row" style="justify-content:space-between">${kicker ? html`<span class="kick">${kicker}</span>` : html`<span></span>`}${chip}</div>` : nothing}
-        ${title || allOff !== nothing ? html`<div class="row" style="justify-content:space-between">${title ? html`<span class="ttl">${title}</span>` : html`<span></span>`}${allOff}</div>` : nothing}
-      </div>` : nothing}
+      ${kicker || title || allOff !== nothing ? this.header(kicker, title, allOff) : nothing}
       <div class="rows c-${c.columns || "auto"}">${rows.map(({ r, s }) => this.rowTemplate(r, s))}</div>
     </div>`, { style: c.on_colour ? `--lamp:${this.colour(c.on_colour, "var(--tm-on)")};--lamp-ink:#1b1400` : "" });
   }

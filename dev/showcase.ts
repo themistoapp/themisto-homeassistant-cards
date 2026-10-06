@@ -60,7 +60,7 @@ const cards: Card[] = [
     plugged: "binary_sensor.evivaro_plug", chips: ["plugged"], show_updated: false,
   } },
   { id: "lights", type: "light-list", className: "lights", config: {
-    name: "BEDROOM", kicker: "Lights", columns: "1", show_count: false, show_all_off: true,
+    name: "BEDROOM", kicker: "Lights", columns: "1", show_all_off: true,
     lights: [
       { entity: "light.ceiling", name: "Spotlights", light_type: "downlight" },
       { entity: "light.reading_lamp", name: "Bedside left", light_type: "pendant" },
@@ -69,7 +69,7 @@ const cards: Card[] = [
     ],
   } },
   { id: "energy", type: "energy", className: "energy", config: {
-    name: "ECOFLOW", kicker: "Home energy", layout: "standard", image: "/dev/ecoflow-stream.webp", glow_colour: "green", show_chip: false,
+    name: "ECOFLOW", kicker: "Home energy", layout: "standard", image: "/dev/ecoflow-stream.webp", glow_colour: "green",
     grid_name: " ", solar_name: " ", battery_name: " ", home_name: " ",
     grid_power: "sensor.stream_grid_power", grid_energy: "sensor.stream_grid_energy_today", grid_cost: "sensor.stream_grid_cost_today",
     solar_power: "sensor.stream_solar_power", solar_energy: "sensor.stream_solar_energy_today",
@@ -78,7 +78,7 @@ const cards: Card[] = [
   { id: "sonos", type: "media", className: "sonos", config: {
     name: "Living room", kicker: "Sonos", entity: "media_player.kitchen", layout: "standard",
     favourites_entity: "sensor.sonos_favorites", favourites_include: ["FV:radio1", "FV:radio6", "FV:jazz", "FV:classic", "FV:discover"],
-    show_favourites: true, show_shuffle_repeat: true, show_chip: false,
+    show_favourites: true, show_shuffle_repeat: true,
   } },
 ];
 

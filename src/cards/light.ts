@@ -49,12 +49,15 @@ export class ThemistoLightCard extends ThemistoCard<LightConfig> {
       .tile.drag .fill { transition: none; }
       .tile.on { border-color: color-mix(in srgb, var(--lamp) 40%, var(--tm-line)); }
       .tile.on.nodim { background: color-mix(in srgb, var(--lamp) 14%, var(--tm-read)); }
-      .tog { transition: background .15s, border-color .15s; }
-      .tog.on { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); box-shadow: 0 6px 18px color-mix(in srgb, var(--lamp) 35%, transparent); }
+      /* Power: a quiet outlined button; on, it takes a soft tint of the light's colour. */
+      .tog { border-color: var(--tm-line-strong); color: var(--tm-text-2); }
+      .tog.on { background: color-mix(in srgb, var(--lamp) 16%, transparent); border-color: color-mix(in srgb, var(--lamp) 55%, transparent); color: var(--tm-text); }
       .read { display: grid; gap: 2px; }
       .hd { flex-wrap: nowrap; }
-      tm-slider { --slider-color: var(--lamp); --slider-ink: var(--lamp-ink); }
+      tm-slider { --slider-color: var(--lamp); }
       @container (max-width: 120px) { .tile .sub { display: none; } }
+      /* On phone-width cards a long name wraps to two lines rather than being cut. */
+      @container (max-width: 260px) { .hd .ttl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } }
 
       /* Fixture picture: the opening lights up in the light's colour, brighter with brightness. */
       .rd { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; min-width: 0; }

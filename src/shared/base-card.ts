@@ -1,7 +1,7 @@
 import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from "lit";
 import type { BaseConfig, HassEntity, HomeAssistant } from "../types";
 import { gestures, runAction, type ActionSet } from "./actions";
-import { gridOptionsFor, layoutForHeight, type Concrete, type GridOptions, type Presets } from "./grid";
+import { gridOptionsFor, layoutForHeight, resolveLayout, type Concrete, type GridOptions, type Presets } from "./grid";
 import { base, tokens } from "./styles";
 import { cssColour, text } from "./util";
 
@@ -37,7 +37,8 @@ export abstract class ThemistoCard<C extends BaseConfig = BaseConfig> extends Li
   setConfig(config: C) {
     if (!config) throw new Error("Invalid configuration");
     this.validate(config);
-    this._config = { ...config };
+    const presets = (this.constructor as typeof ThemistoCard).presets;
+    this._config = { ...config, layout: resolveLayout(presets, config.layout) };
   }
 
   /** Throw a readable Error for a config the card can't use. */
@@ -73,7 +74,7 @@ export abstract class ThemistoCard<C extends BaseConfig = BaseConfig> extends Li
   /** The layout actually rendered: the configured one, or the measured one for `auto`. */
   get cardLayout(): Concrete {
     const l = this._config?.layout;
-    return !l || l === "auto" ? this._auto : l;
+    return !l || l === "auto" || l === "wide" || l === "tall" ? this._auto : l;
   }
 
   getCardSize() {

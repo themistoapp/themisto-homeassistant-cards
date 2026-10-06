@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { gridOptionsFor, layoutForHeight, pxToRows, rowsToPx } from "../src/shared/grid";
+import { gridOptionsFor, layoutForHeight, pxToRows, resolveLayout, rowsToPx } from "../src/shared/grid";
 import { bucket } from "../src/shared/history";
 import { formatPower, formatRate, measure, toMbps } from "../src/shared/format";
 import { text, cssColour, relativeTime } from "../src/shared/util";
-import { stepTarget } from "../src/cards/thermostat";
+import { dialAngle, fmtHalf, half, stepTarget } from "../src/cards/thermostat";
 import { computeStat } from "../src/cards/sensor";
 import { isCharging, isOpen, levelFromRange, lockState } from "../src/cards/vehicle";
 import { wanOnline } from "../src/cards/unifi";
 import { discover } from "../src/cards/portainer";
 import { autoColour } from "../src/cards/status-badge";
 import { flow } from "../src/cards/energy";
-import { chargerState, deriveChargerState } from "../src/cards/charger";
+import { chargerKw, chargerState, deriveChargerState } from "../src/cards/charger";
 import { caps, defaultTemps, kelvinToCss } from "../src/shared/light";
 
 const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) =>
@@ -229,5 +229,36 @@ describe("light capabilities", () => {
     expect(kelvinToCss(2200)).toMatch(/^rgb\(255, /);
     expect(blue(6500)).toBeGreaterThan(240);
     expect(blue(2200)).toBeLessThan(blue(4000));
+  });
+});
+
+describe("brand rollout", () => {
+  it("resolves the wide and tall size aliases to each card's own shape", () => {
+    const sensor = { compact: { columns: 6, rows: 2 }, standard: { columns: 6, rows: 4 }, large: { columns: 12, rows: 4 } };
+    const media = { compact: { columns: 6, rows: 2 }, standard: { columns: 12, rows: 4 }, large: { columns: 6, rows: 6 } };
+    expect(resolveLayout(sensor, "wide")).toBe("large");
+    expect(resolveLayout(media, "wide")).toBe("standard");
+    expect(resolveLayout(media, "tall")).toBe("large");
+    expect(resolveLayout(sensor, "tall")).toBe("standard");
+    expect(resolveLayout(sensor, "compact")).toBe("compact");
+    expect(gridOptionsFor(media, "tall").rows).toBe(6);
+  });
+  it("shows thermostat temperatures to the nearest half degree", () => {
+    expect([20.1, 20.24, 20.26, 20.74, 20.76, 21].map(half)).toEqual([20, 20, 20.5, 20.5, 21, 21]);
+    expect(fmtHalf(19.8)).toBe("20");
+    expect(fmtHalf(21.4)).toBe("21.5");
+    expect(fmtHalf(NaN)).toBe("–");
+  });
+  it("maps temperatures onto the dial's 300 degrees", () => {
+    expect(dialAngle(7, 7, 35)).toBe(-150);
+    expect(dialAngle(35, 7, 35)).toBe(150);
+    expect(dialAngle(21, 7, 35)).toBe(0);
+    expect(dialAngle(50, 7, 35)).toBe(150);
+  });
+  it("reports charger power in kW, 0 when idle", () => {
+    expect(chargerKw(st("sensor.p", "0", { unit_of_measurement: "W" }), 0)).toBe("0");
+    expect(chargerKw(st("sensor.p", "7200", { unit_of_measurement: "W" }), 7200)).toBe("7.2");
+    expect(chargerKw(st("sensor.p", "7.2", { unit_of_measurement: "kW" }), 7.2)).toBe("7.2");
+    expect(chargerKw(st("sensor.p", "12", { unit_of_measurement: "W" }), 12)).toBe("0");
   });
 });

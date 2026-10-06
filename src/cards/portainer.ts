@@ -68,20 +68,18 @@ export class ThemistoPortainerCard extends ThemistoCard<PortainerConfig> {
     css`
       .rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
       @container (min-width: 560px) { .rows.c-auto, .rows.c-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-      .r { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 10px; border-radius: 12px; background: var(--tm-read-2); cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; min-width: 0; }
+      .r { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 4px 0 12px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; min-width: 0; }
       .r.compact { height: 36px; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--run); box-shadow: 0 0 0 3px color-mix(in srgb, var(--run) 18%, transparent); }
-      .r.stopped .dot { background: var(--stop); box-shadow: 0 0 0 3px color-mix(in srgb, var(--stop) 18%, transparent); }
-      .r.busy .dot { background: var(--busy); animation: pulse 1s ease infinite; }
-      @keyframes pulse { 50% { opacity: .3; } }
-      .m { display: flex; gap: 10px; font: 11px var(--tm-mono); color: var(--tm-text-2); font-variant-numeric: tabular-nums; flex: none; }
+      /* The brand dot: steady colour, no pulse. Restarting shows the warning colour. */
+      .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--run); }
+      .r.stopped .dot { background: var(--stop); }
+      .r.busy .dot { background: var(--busy); }
+      .m { display: flex; gap: 10px; font: 400 var(--tm-fs-label) var(--tm-mono); color: var(--tm-text-2); font-variant-numeric: tabular-nums; flex: none; }
       .m span { min-width: 6ch; text-align: right; }
-      .r .rbtn { width: 32px; height: 32px; border: 0; background: transparent; color: var(--tm-muted); }
-      .r .rbtn svg { width: 16px; height: 16px; }
-      .cf { display: flex; align-items: center; gap: 6px; flex: none; font: 600 12px var(--tm-body); }
-      .cf .rbtn { width: 30px; height: 30px; border: 1px solid var(--tm-line); background: var(--tm-solid); }
+      .r .rbtn { border: 0; color: var(--tm-muted); }
+      .cf { display: flex; align-items: center; gap: 6px; flex: none; font: 600 var(--tm-fs-small) var(--tm-body); }
+      .cf .rbtn { background: var(--tm-solid); }
       .cf .yes { color: var(--tm-bad); }
-      .more { height: 32px; border-radius: 10px; border: 1px dashed var(--tm-line); font: 600 12px var(--tm-body); color: var(--tm-text-2); }
       @container (max-width: 340px) { .m { display: none; } }
     `,
   ];
@@ -183,7 +181,7 @@ export class ThemistoPortainerCard extends ThemistoCard<PortainerConfig> {
     const up = () => clearTimeout(h.timer);
     const tap = (e: Event) => { if ((e.target as HTMLElement).closest("button") || h.held) return; this.elementAction(x.status || x.power || x.state); };
     const canRestart = c.show_restart !== false && (run ? !!x.restart : !!x.power);
-    return html`<div class="r ${run ? "" : "stopped"} ${busy ? "busy" : ""} ${c.compact_rows ? "compact" : ""}" data-own role="button" tabindex="0" aria-label="${x.name}, ${sub}"
+    return html`<div class="r panel ${run ? "" : "stopped"} ${busy ? "busy" : ""} ${c.compact_rows ? "compact" : ""}" data-own role="button" tabindex="0" aria-label="${x.name}, ${sub}"
       @pointerdown=${down} @pointerup=${up} @pointerleave=${up} @click=${tap} @contextmenu=${(e: Event) => e.preventDefault()}>
       <span class="dot"></span>
       <div class="sp"><div class="nm">${x.name}</div>${c.compact_rows ? nothing : html`<div class="sub">${sub}</div>`}</div>
@@ -221,7 +219,7 @@ export class ThemistoPortainerCard extends ThemistoCard<PortainerConfig> {
       ${this.header(this.t(c.kicker, "Docker · Portainer"), name, chip)}
       ${shown.length ? html`<div class="rows c-${c.columns || "auto"}">${shown.map((x) => this.row(x))}</div>`
         : html`<div class="msg">${all.length ? "Every container is running." : "No containers found. Check the endpoint device in the card settings."}</div>`}
-      ${extra ? html`<button class="more" @click=${() => (this._all = true)}>Show ${extra} more</button>` : c.max_rows && this._all ? html`<button class="more" @click=${() => (this._all = false)}>Show fewer</button>` : nothing}
+      ${extra ? html`<button class="qbtn" @click=${() => (this._all = true)}>Show ${extra} more</button>` : c.max_rows && this._all ? html`<button class="qbtn" @click=${() => (this._all = false)}>Show fewer</button>` : nothing}
     </div>`, { style: `--run:${runC};--stop:${stopC};--busy:${this.colour(c.restarting_colour, "var(--tm-warn)")}` });
   }
 }

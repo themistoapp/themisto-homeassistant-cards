@@ -26,7 +26,7 @@ export class TmGraph extends LitElement {
     .bar { fill: color-mix(in srgb, var(--c) 45%, transparent); } .bar.hi { fill: var(--c); }
     .dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); pointer-events: none; }
     .hl { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--tm-line-strong); pointer-events: none; }
-    .empty { position: absolute; inset: 0; display: grid; place-items: center; font: 10px var(--tm-mono, monospace); color: var(--tm-muted); letter-spacing: .08em; text-transform: uppercase; }
+    .empty { position: absolute; inset: 0; display: grid; place-items: center; font: var(--tm-fs-label) var(--tm-mono, monospace); color: var(--tm-muted); letter-spacing: .08em; text-transform: uppercase; }
   `;
 
   private setHover(i: number | null) {

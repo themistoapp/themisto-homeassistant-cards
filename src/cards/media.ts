@@ -3,7 +3,7 @@ import "../components/tm-slider";
 import { ThemistoCard } from "../shared/base-card";
 import { actions, appearance, bool, choose, colour, editorFor, entity, list, section, textField, titleFields, grid, type EditorSpec } from "../shared/editor";
 import { icon } from "../shared/icons";
-import { cap, friendlyName, isUnavailable, num } from "../shared/util";
+import { friendlyName, isUnavailable, num } from "../shared/util";
 import type { BaseConfig, HassEntity, HomeAssistant } from "../types";
 
 interface Favourite { name: string; media_content_id: string; media_content_type?: string; image?: string }
@@ -14,7 +14,7 @@ export interface MediaConfig extends BaseConfig {
   favourites_include?: string[];
   favourites?: Favourite[];
   show_art?: boolean; show_progress?: boolean; show_transport?: boolean; show_volume?: boolean;
-  show_group?: boolean; show_favourites?: boolean; show_shuffle_repeat?: boolean; show_mute?: boolean; show_chip?: boolean;
+  show_group?: boolean; show_favourites?: boolean; show_shuffle_repeat?: boolean; show_mute?: boolean;
 }
 
 // MediaPlayerEntityFeature bits
@@ -36,7 +36,7 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
   static override styles = [
     ...ThemistoCard.styles,
     css`
-      .art { position: relative; border-radius: 14px; overflow: hidden; display: grid; place-items: center; color: rgba(255,255,255,.85); flex: none; background-size: cover; background-position: center; }
+      .art { position: relative; border-radius: var(--tm-radius); overflow: hidden; display: grid; place-items: center; color: rgba(255,255,255,.85); flex: none; background-size: cover; background-position: center; }
       .art > svg { width: 26px; height: 26px; }
       .wide { display: grid; grid-template-columns: clamp(72px, 24cqw, 132px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 12px 16px; }
       .wide > .art { width: 100%; aspect-ratio: 1; align-self: center; }
@@ -44,30 +44,33 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
       .solo { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; }
       .body { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; justify-content: space-between; }
       .trk { display: grid; gap: 3px; min-width: 0; }
-      .trk strong { font-size: 15px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .trk span { font-size: 12px; color: var(--tm-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .prog { position: relative; height: 4px; border-radius: 99px; background: var(--tm-line); flex: none; }
-      .prog i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--tm-text-2); }
-      .tp { display: flex; align-items: center; gap: 6px; flex: none; }
-      .tp .play { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--tm-text); color: var(--tm-solid); }
-      .tp .play svg { width: 18px; height: 18px; }
-      .tp .ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: var(--tm-text-2); }
-      .tp .ic svg { width: 17px; height: 17px; }
-      .tp .ic[aria-pressed="true"] { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+      .trk strong { font-size: var(--tm-fs-body); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .trk span { font-size: var(--tm-fs-small); color: var(--tm-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* Transport: one pill bar, as the site's segmented control. Play is the accent-filled button,
+         the same size as the rest; shuffle and repeat show pressed when on. */
+      .tp { display: flex; align-items: center; gap: 2px; flex: none; max-width: 100%; padding: 3px; border-radius: 999px; border: 1px solid var(--tm-line); background: var(--tm-glass-strong); }
+      .tp button { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--tm-text-2); transition: background .15s, color .15s; }
+      .tp button svg { width: 18px; height: 18px; }
+      .tp .ic:not(:disabled):hover { background: var(--tm-accent-soft); color: var(--tm-text); }
+      .tp .ic[aria-pressed="true"] { background: var(--tm-accent-soft); color: var(--c); }
+      .tp .play { background: var(--c); color: var(--tm-on-ink); }
+      .tp .play svg { width: 16px; height: 16px; }
+      /* On its own (compact card) play is the card's main action: 44px, no bar. */
+      .tp.solo { padding: 0; border: 0; background: none; }
+      .tp.solo .play { width: 44px; height: 44px; }
       .favs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: none; mask-image: linear-gradient(90deg, #000 88%, transparent); }
       .favs::-webkit-scrollbar { display: none; }
-      .favs button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 8px; border-radius: 99px; border: 1px solid var(--tm-line); font: 600 12px var(--tm-body); white-space: nowrap; flex: none; background: var(--tm-read-2); }
+      .favs .choice { padding: 0 13.6px 0 7px; }
       .favs button svg { width: 13px; height: 13px; color: var(--tm-muted); }
-      .favs button img { width: 22px; height: 22px; border-radius: 6px; object-fit: cover; margin-left: -4px; }
+      .favs button img { width: 22px; height: 22px; border-radius: var(--tm-radius-icon-sm); object-fit: cover; margin-left: -4px; }
       .tall > .art { height: 136px; width: 100%; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; }
       .tall .scrim { position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.45), transparent 55%); }
       .tall > .art .row { position: relative; color: #fff; align-items: flex-start; justify-content: space-between; }
       .tall > .art .kick { color: rgba(255,255,255,.75); } .tall > .art .ttl { color: #fff; }
-      .tall > .art .chip { color: #fff; border-color: rgba(255,255,255,.28); background: rgba(0,0,0,.32); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
       .compact { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
       .compact > .art { width: 96px; height: 96px; }
       .vol { display: flex; align-items: center; gap: 6px; min-width: 0; }
-      .vol tm-slider { flex: 1; min-width: 0; --slider-color: var(--tm-text-2); }
+      .vol tm-slider { flex: 1; min-width: 0; }
       @container (max-width: 359px) { .wide { grid-template-columns: minmax(0, 1fr); } .wide > .art { display: none; } }
       @container (max-width: 250px) { .compact { grid-template-columns: minmax(0, 1fr) auto; } .compact > .art { display: none; } }
     `,
@@ -101,11 +104,11 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
           ...(opts.length ? [choose("favourites_include", opts, { multiple: true, reorder: true, mode: "list" })] : []),
           list("favourites", { name: { ...textField("name"), label: "Name", required: true }, media_content_id: { ...textField("media_content_id"), label: "Media content ID", required: true }, media_content_type: { ...textField("media_content_type"), label: "Media content type" }, image: { ...textField("image"), label: "Image URL" } }, "name", "media_content_id"),
         ], { icon: "mdi:star-outline", expanded: true }),
-        section("Controls", [grid(bool("show_art"), bool("show_progress")), grid(bool("show_transport"), bool("show_volume")), grid(bool("show_mute"), bool("show_group")), grid(bool("show_shuffle_repeat"), bool("show_chip"))], { icon: "mdi:tune-variant" }),
+        section("Controls", [grid(bool("show_art"), bool("show_progress")), grid(bool("show_transport"), bool("show_volume")), grid(bool("show_mute"), bool("show_group")), bool("show_shuffle_repeat")], { icon: "mdi:tune-variant" }),
         appearance([["compact", "Compact"], ["standard", "Wide"], ["large", "Tall"]], [colour("accent")]),
         actions(),
       ],
-      labels: { show_favourites: "Show favourites", favourites_entity: "Sonos favourites sensor", favourites_include: "Favourites to show (in this order)", favourites: "Extra favourites (manual)", show_art: "Album art", show_progress: "Progress bar", show_transport: "Previous / next", show_volume: "Volume", show_mute: "Mute button", show_group: "Grouped speakers", show_shuffle_repeat: "Shuffle and repeat", show_chip: "Playing status chip", name: "Title (room)" },
+      labels: { show_favourites: "Show favourites", favourites_entity: "Sonos favourites sensor", favourites_include: "Favourites to show (in this order)", favourites: "Extra favourites (manual)", show_art: "Album art", show_progress: "Progress bar", show_transport: "Previous / next", show_volume: "Volume", show_mute: "Mute button", show_group: "Grouped speakers", show_shuffle_repeat: "Shuffle and repeat", name: "Title (room)" },
       helpers: {
         favourites_entity: opts.length ? "Found your Sonos favourites." : "Enable sensor.sonos_favorites under Settings → Devices → Sonos → Entities to pick favourites here.",
         favourites_include: "Leave empty to show them all.",
@@ -169,8 +172,6 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
     const has = (f: number) => (feat & f) === f;
     const playing = s.state === "playing", idle = !["playing", "paused", "buffering"].includes(s.state);
     const accent = this.colour(c.accent, "var(--tm-accent)");
-    const stateCol = playing ? "var(--tm-ok)" : idle ? "var(--tm-idle)" : "var(--tm-warn)";
-    const chip = c.show_chip === false ? nothing : html`<span class="chip" style="--cc:${stateCol}"><i></i>${this.hass?.formatEntityState?.(s) ?? cap(s.state)}</span>`;
     const title = idle ? "" : a.media_title || a.source || "Playing";
     const others: string[] = (c.show_group !== false && Array.isArray(a.group_members) ? a.group_members : []).filter((e: string) => e !== c.entity).map((e: string) => friendlyName(this.stateOf(e), e.split(".")[1]));
     const artist = idle ? "" : [a.media_artist || a.media_album_name || a.app_name, others.length ? `with ${others.join(", ")}` : ""].filter(Boolean).join(" · ");
@@ -179,7 +180,7 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
     const showArt = c.show_art !== false;
     const art = showArt ? html`<div class="art" style=${artStyle}>${idle ? icon("speaker") : nothing}</div>` : nothing;
     const dur = num(a.media_duration, 0);
-    const prog = c.show_progress !== false && dur > 0 && !idle ? html`<div class="prog" role="progressbar" aria-valuenow=${Math.round(this.position(s))} aria-valuemax=${dur}><i style="width:${(this.position(s) / dur) * 100}%"></i></div>` : nothing;
+    const prog = c.show_progress !== false && dur > 0 && !idle ? html`<div class="meter" role="progressbar" aria-valuenow=${Math.round(this.position(s))} aria-valuemax=${dur}><i style="width:${(this.position(s) / dur) * 100}%"></i></div>` : nothing;
     const canPlay = has(F.PLAY) || has(F.PAUSE);
     const playBtn = canPlay ? html`<button class="play" ?disabled=${idle && !this.favourites().length} aria-label=${playing ? "Pause" : "Play"} @click=${() => this.svc(playing ? "media_pause" : "media_play")}>${icon(playing ? "pause" : "play")}</button>` : nothing;
     const transport = c.show_transport !== false;
@@ -191,28 +192,28 @@ export class ThemistoMediaCard extends ThemistoCard<MediaConfig> {
       ${c.show_shuffle_repeat && has(F.REPEAT) ? html`<button class="ic" aria-label="Repeat ${a.repeat || "off"}" aria-pressed=${a.repeat && a.repeat !== "off"} @click=${() => this.svc("repeat_set", { repeat: a.repeat === "off" ? "all" : a.repeat === "all" ? "one" : "off" })}>${icon("repeat")}</button>` : nothing}
     </div>`;
     const vol = c.show_volume !== false && has(F.VOLUME_SET) ? html`<div class="vol">
-      ${c.show_mute && has(F.VOLUME_MUTE) ? html`<button class="rbtn sm" aria-label=${a.is_volume_muted ? "Unmute" : "Mute"} @click=${() => this.svc("volume_mute", { is_volume_muted: !a.is_volume_muted })}>${icon(a.is_volume_muted ? "mute" : "speaker")}</button>` : nothing}
+      ${c.show_mute && has(F.VOLUME_MUTE) ? html`<button class="rbtn" aria-label=${a.is_volume_muted ? "Unmute" : "Mute"} @click=${() => this.svc("volume_mute", { is_volume_muted: !a.is_volume_muted })}>${icon(a.is_volume_muted ? "mute" : "speaker")}</button>` : nothing}
       <tm-slider .value=${Math.round(num(a.volume_level, 0) * 100)} min="0" max="100" icon="speaker" label="Volume" @value-changed=${(e: CustomEvent) => this.svc("volume_set", { volume_level: e.detail.value / 100 })}></tm-slider></div>` : nothing;
     const favs = c.show_favourites !== false && has(F.PLAY_MEDIA) ? this.favourites() : [];
     const favArt = (f: Favourite) => {
       const src = f.image || this._thumbs[f.media_content_id];
       return src && !this._broken.has(src) ? html`<img src=${src} alt="" loading="lazy" @error=${() => { this._broken.add(src); this.requestUpdate(); }}>` : icon("star");
     };
-    const favRow = favs.length ? html`<div class="favs">${favs.map((f) => html`<button @click=${() => this.svc("play_media", { media_content_id: f.media_content_id, media_content_type: f.media_content_type || "favorite_item_id" })}>${favArt(f)}${f.name}</button>`)}</div>` : nothing;
+    const favRow = favs.length ? html`<div class="favs">${favs.map((f) => html`<button class="choice" @click=${() => this.svc("play_media", { media_content_id: f.media_content_id, media_content_type: f.media_content_type || "favorite_item_id" })}>${favArt(f)}${f.name}</button>`)}</div>` : nothing;
     const trk = title ? html`<div class="trk"><strong>${title}</strong>${artist ? html`<span>${artist}</span>` : nothing}</div>` : nothing;
     const kicker = this.t(c.kicker, "Sonos");
 
     if (this.cardLayout === "compact") {
-      return this.shell(html`<div class="in compact">${art}<div class="trk" style="gap:6px">${name ? html`<span class="kick">${name}</span>` : nothing}${title ? html`<strong>${title}</strong>` : nothing}${artist ? html`<span>${artist}</span>` : nothing}${prog}</div><div class="tp">${playBtn}</div></div>`, { c: accent });
+      return this.shell(html`<div class="in compact">${art}<div class="trk" style="gap:6px">${name ? html`<span class="kick">${name}</span>` : nothing}${title ? html`<strong>${title}</strong>` : nothing}${artist ? html`<span>${artist}</span>` : nothing}${prog}</div><div class="tp solo">${playBtn}</div></div>`, { c: accent });
     }
     if (this.cardLayout === "large") {
       return this.shell(html`<div class="in tall" style="gap:10px">
-        ${showArt ? html`<div class="art" style=${artStyle}><div class="scrim"></div><div class="row"><div class="titles" style="min-width:0;display:grid;gap:4px">${kicker ? html`<span class="kick">${kicker}</span>` : nothing}<span class="ttl">${name}</span></div>${chip}</div></div>` : this.header(kicker, name, chip)}
+        ${showArt ? html`<div class="art" style=${artStyle}><div class="scrim"></div><div class="row"><div class="titles" style="min-width:0;display:grid;gap:4px">${kicker ? html`<span class="kick">${kicker}</span>` : nothing}<span class="ttl">${name}</span></div></div></div>` : this.header(kicker, name)}
         ${trk}${prog}<div class="row" style="justify-content:center">${tp}</div>${vol}${favRow}
       </div>`, { c: accent });
     }
     return this.shell(html`<div class="in ${showArt ? "wide" : "solo"}">${art}<div class="body">
-      ${this.header(kicker, name, chip)}${trk}${prog}
+      ${this.header(kicker, name)}${trk}${prog}
       <div class="row">${tp}<div class="sp">${vol}</div></div>
     </div>${favRow}</div>`, { c: accent });
   }

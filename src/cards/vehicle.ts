@@ -79,17 +79,18 @@ export class ThemistoVehicleCard extends ThemistoCard<VehicleConfig> {
       .img { position: relative; flex: 1; min-height: 44px; display: grid; place-items: center; overflow: hidden; }
       .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform: translateY(var(--oy, 0)) scale(var(--zoom, 1)); filter: drop-shadow(0 10px 12px rgba(0,0,0,.25)); }
       .img::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: 4%; height: 12px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.28), transparent); z-index: -1; }
-      .ph { width: 96px; height: 96px; border-radius: 24px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); }
+      .ph { width: 96px; height: 96px; border-radius: var(--tm-radius); display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); }
       .ph svg { width: 52px; height: 52px; stroke-width: 1.4; }
-      .lv { position: relative; height: 10px; border-radius: 99px; background: var(--tm-line); flex: none; }
+      .lv { position: relative; height: 6px; border-radius: 99px; background: var(--tm-line); flex: none; }
       .lv-f { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--lc); transition: width .3s; }
       .lv-f.chg { background: repeating-linear-gradient(-45deg, var(--lc) 0 8px, color-mix(in srgb, var(--lc) 70%, #fff) 8px 16px); background-size: 22.6px 22.6px; animation: chg 1s linear infinite; }
       @keyframes chg { to { background-position: 22.6px 0; } }
-      .lv-t { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--tm-text); }
+      .lv-t { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 99px; background: var(--tm-text); }
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chips .chip { --cc: var(--tm-text-2); }
       .chips .chip span { overflow: hidden; text-overflow: ellipsis; }
       .chips .chip.loc { max-width: 18ch; }
+
 
       /*
        * One layout at every size:
@@ -105,39 +106,39 @@ export class ThemistoVehicleCard extends ThemistoCard<VehicleConfig> {
         grid-template-areas: "hd hd" "img lvl" "ch ch"; grid-template-rows: auto minmax(56px, 1fr) minmax(0, max-content); }
       .side > .hd { grid-area: hd; flex-wrap: nowrap; align-items: baseline; }
       .side > .hd > .titles { flex: 1 1 auto; }
-      .side > .hd .upd { flex: none; white-space: nowrap; font: 500 12px/1.3 var(--tm-body); }
+      .side > .hd .upd { flex: none; white-space: nowrap; font: 400 var(--tm-fs-small)/1.3 var(--tm-body); }
       .side > .img { grid-area: img; height: 100%; min-height: 0; }
       .side > .lvl { grid-area: lvl; align-self: center; min-width: 0; }
       .side > .chips { grid-area: ch; position: relative; min-height: 0; overflow: hidden; align-content: flex-start; }
 
       .lvl { display: grid; gap: 6px; }
-      .lvl .hero { --hero: var(--fig, 34px); padding-block: 0.04em; line-height: 1; overflow: hidden; text-overflow: ellipsis; }
+      .lvl .hero { padding-block: 0.04em; line-height: 1; overflow: hidden; text-overflow: ellipsis; }
       .lvl .lv { margin-top: 4px; }
       .lvl .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
       /* Per size: image share, spacing, figure size. */
-      .v-c { --imgw: 44%; --gx: 12px; --gy: 8px; --fig: 26px; }
-      .v-c .hd .kick, .v-c .lvl > .kick { display: none; }
-      .v-c .lv { height: 8px; margin-top: 2px; }
-      .v-s { --imgw: 50%; --fig: 34px; }
-      .v-l { --imgw: 50%; --gx: 20px; --fig: 38px; }
+      .v-c { --imgw: 44%; --gx: 12px; --gy: 8px; }
+      .v-c .hd .kick, .v-c .lvl > .label { display: none; }
+      .v-c .lv { margin-top: 2px; }
+      .v-s { --imgw: 50%; }
+      .v-l { --imgw: 50%; --gx: 20px; }
 
       @container (min-width: 520px) {
-        .side { grid-template-areas: "hd hd" "img lvl" "img ch"; grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr); }
+        /* The reading takes the height it needs; the chips get the rest (and hide any that don't fit). */
+        .side { grid-template-areas: "hd hd" "img lvl" "img ch"; grid-template-rows: auto auto minmax(0, 1fr); }
         .side > .lvl { align-self: end; }
-        .side > .chips { align-self: start; }
+        .side > .chips { align-self: stretch; }
       }
       @container (max-width: 360px) {
-        .v-l, .v-s { --gx: 14px; --fig: 30px; }
-        .side .ph { width: 44px; height: 44px; border-radius: 12px; } .side .ph svg { width: 26px; height: 26px; }
+        .v-l, .v-s { --gx: 14px; }
+        .side .ph { width: 44px; height: 44px; border-radius: var(--tm-radius-icon); } .side .ph svg { width: 26px; height: 26px; }
       }
       /* Half-width cards on a phone (~180px): updated drops under the name, figure shrinks to fit. */
       @container (max-width: 250px) {
-        .side { --imgw: 44%; --gx: 10px; --gy: 8px; --fig: 22px; }
+        .side { --imgw: 44%; --gx: 10px; --gy: 8px; } .lvl .hero { --hero: var(--tm-fs-section-c); }
         .side > .hd { flex-wrap: wrap; row-gap: 2px; }
         .side > .hd > .titles { flex-basis: 100%; }
-        .side .hd .kick, .side .lvl > .kick { display: none; }
-        .side .lv { height: 7px; }
+        .side .hd .kick, .side .lvl > .label { display: none; }
       }
     `,
   ];
@@ -175,7 +176,7 @@ export class ThemistoVehicleCard extends ThemistoCard<VehicleConfig> {
         section("Chips", [choose("chips", CHIP_SLOTS.map((k) => [k, CHIP_LABELS[k]] as [string, string]), { multiple: true, reorder: true, mode: "list" })], { icon: "mdi:label-multiple-outline" }),
         section("Last updated", [bool("show_updated"), entity("updated", "sensor")], { icon: "mdi:clock-outline" }),
         section("Status text", [grid(textField("parked_text"), textField("driving_text")), textField("charging_text")], { icon: "mdi:format-text" }),
-        appearance(["compact", "standard", "large"]),
+        appearance(["compact", "standard", ["large", "Wide"]]),
         section("Colours", [grid(numberField("low_level", 0, 100, 1, "%"), numberField("critical_level", 0, 100, 1, "%")), grid(colour("level_colour"), colour("charging_colour")), grid(colour("low_colour"), colour("critical_colour"))], { icon: "mdi:palette" }),
         actions(),
       ],
@@ -293,17 +294,17 @@ export class ThemistoVehicleCard extends ThemistoCard<VehicleConfig> {
     const power = c.charging_power ? measure(this._hass, this.stateOf(c.charging_power)) : undefined;
     const moving = isOn(this.stateOf(c.moving));
     const [statusText, statusCol] = charging
-      ? [this.t(c.charging_text, `Charging${power && power.value !== "–" ? ` ${power.value} ${power.unit}` : ""}`), this.colour(c.charging_colour, "var(--tm-ok)")]
+      ? [this.t(c.charging_text, "Charging"), this.colour(c.charging_colour, "var(--tm-ok)")]
       : moving ? [this.t(c.driving_text, "Driving"), "var(--tm-accent)"]
       : hasBar && level < crit ? [`Low ${ev ? "battery" : "fuel"}`, "var(--tm-bad)"]
       : [this.t(c.parked_text, ""), "var(--tm-idle)"];
-        const chip = statusText ? html`<span class="chip" style="--cc:${statusCol}">${charging ? icon("bolt") : html`<i></i>`}${statusText}</span>` : nothing;
+        const chip = statusText ? html`<span class="chip" style="--cc:${statusCol}">${charging ? icon("bolt") : html`<i></i>`}${statusText}${charging && !c.charging_text && power && power.value !== "–" ? html`<span class="more"> ${power.value} ${power.unit}</span>` : nothing}</span>` : nothing;
     const limit = c.charge_limit ? num(this.stateOf(c.charge_limit)?.state) : NaN;
     const ttf = c.time_to_full ? this.stateOf(c.time_to_full) : undefined;
     const ttfText = ttf && !isUnavailable(ttf) ? (this.hass?.formatEntityState?.(ttf) ?? ttf.state) : "";
     const heroLabel = byOdo ? "Odometer" : byRange ? "Range" : ev ? "Battery" : "Fuel";
     const levelT = html`<div class="lvl">
-      <span class="kick">${heroLabel}</span>
+      <span class="label">${heroLabel}</span>
       <span class="hero">${byRange || byOdo || !levelIsPercent ? html`${heroM.value}${heroM.unit ? html`<span class="u">${heroM.unit}</span>` : nothing}` : html`${level}<span class="u">%</span>`}</span>
       ${hasBar ? html`<div class="lv" role="meter" aria-valuenow=${level} aria-valuemin="0" aria-valuemax="100" aria-label=${heroLabel}>
         <div class="lv-f ${charging ? "chg" : ""}" style="width:${level}%;--lc:${lc}"></div>
@@ -319,4 +320,5 @@ export class ThemistoVehicleCard extends ThemistoCard<VehicleConfig> {
     const size = { compact: "v-c", standard: "v-s", large: "v-l" }[this.cardLayout];
     return this.shell(html`<div class="in side ${size}">${head}${img}${levelT}${chips}</div>`, { c: lc });
   }
+
 }

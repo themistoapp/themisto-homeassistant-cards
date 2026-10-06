@@ -12,6 +12,12 @@ import { icon } from "../shared/icons";
 import { cap, friendlyName, isUnavailable } from "../shared/util";
 import type { BaseConfig, HassEntity, HomeAssistant } from "../types";
 
+/** A charger's power in kW: one decimal while drawing, a plain 0 when idle. Exported for tests. */
+export function chargerKw(s: HassEntity | undefined, raw: number) {
+  const w = String(s?.attributes.unit_of_measurement || "W").toLowerCase() === "kw" ? raw * 1000 : raw;
+  return !Number.isFinite(w) || w < 50 ? "0" : (w / 1000).toFixed(1);
+}
+
 export interface ChargerConfig extends BaseConfig {
   entity?: string;
   power?: string;
@@ -112,10 +118,11 @@ export class ThemistoChargerCard extends ThemistoCard<ChargerConfig> {
       .body { display: flex; flex-direction: column; justify-content: center; gap: 10px; min-width: 0; min-height: 0; }
       .body.has-graph { justify-content: flex-start; gap: 8px; }
       .body tm-graph { flex: 1; min-height: 36px; --graph-color: var(--gcol); }
-      .hero { --hero: 40px; }
-      .compact .hero { --hero: 26px; }
       .compact { gap: 12px; }
       .compact .body { gap: 4px; }
+      /* Name and pill share a line when they fit, else the pill drops under the name. */
+      .compact .body > .row { flex-wrap: wrap; row-gap: 4px; }
+      .compact .body > .row > .nm { flex: 1 1 auto; min-width: 0; }
 
       /* Lights: logo ring and the four status dots, drawn as soft glows over the image. */
       /* The logo's own white circle and lettering, recoloured and glowing (mask cut from the photo). */
@@ -132,7 +139,7 @@ export class ThemistoChargerCard extends ThemistoCard<ChargerConfig> {
       @keyframes cascade { 0% { opacity: .1; } 12% { opacity: 1; } 34% { opacity: .1; } 100% { opacity: .1; } }
       @keyframes breathe { 50% { opacity: .7; } }
       @media (prefers-reduced-motion: reduce) { .charging .dot { animation: none; opacity: .9; } .logo { animation: none; } }
-      @container (max-width: 220px) { .ch { grid-template-columns: minmax(0, 1fr); } .ch > .img { display: none; } }
+      @container (max-width: 260px) { .ch, .ch.compact { grid-template-columns: minmax(0, 1fr); } .ch > .img { display: none; } }
     `,
   ];
 
@@ -191,7 +198,8 @@ export class ThemistoChargerCard extends ThemistoCard<ChargerConfig> {
     const chipCol = st === "charging" ? "var(--tm-ok)" : st === "plugged" ? "var(--tm-accent)" : "var(--tm-idle)";
     const chip = html`<span class="chip" style="--cc:${chipCol}">${st === "charging" ? icon("bolt") : html`<i></i>`}${label}</span>`;
     const p = c.power ? measure(this._hass, this.stateOf(c.power)) : undefined;
-    const showPower = !!p && p.value !== "–" && st === "charging";
+    // The figure is always the power when there's a monitor (0 kW when idle); the pill already says idle.
+    const showPower = !!p && p.value !== "–" && st !== "unavailable";
     const rawState = s && !isUnavailable(s) && st !== "charging" && !["on", "off"].includes(s.state) ? this.hass?.formatEntityState?.(s) ?? cap(s.state) : "";
 
     const pic = c.image_entity ? this.stateOf(c.image_entity)?.attributes.entity_picture : undefined;
@@ -204,12 +212,15 @@ export class ThemistoChargerCard extends ThemistoCard<ChargerConfig> {
           ${INDRA.dots.y.map((y, i) => html`<i class="dot" style="left:${INDRA.dots.x}%;top:${y}%;width:${INDRA.dots.w}%;animation-delay:${i * 0.28}s"></i>`)}` : nothing}
       </tm-fit></div>` : nothing;
 
-    const figure = showPower ? html`<span class="hero">${p!.value}<span class="u">${p!.unit}</span></span>` : html`<span class="hero" style="--hero:${this.cardLayout === "compact" ? 22 : 30}px">${label}</span>`;
+    // Without a power monitor the figure is the session energy, if any; the pill already says the state.
+    const e = c.energy ? measure(this._hass, this.stateOf(c.energy)) : undefined;
+    const figure = showPower ? html`<span class="hero">${chargerKw(this.stateOf(c.power), p!.raw)}<span class="u">kW</span></span>`
+      : e && e.value !== "–" ? html`<span class="hero">${e.value}${e.unit ? html`<span class="u">${e.unit}</span>` : nothing}</span>` : nothing;
     const fig = (id: string | undefined, lbl: string | undefined) => {
       const m = id ? measure(this._hass, this.stateOf(id)) : undefined;
       return m && m.value !== "–" ? [m.value + (m.unit ? ` ${m.unit}` : ""), this.t(lbl, "")].filter(Boolean).join(" ") : "";
     };
-    const sub = [fig(c.energy, c.energy_label), fig(c.cost, c.cost_label), rawState && rawState.toLowerCase() !== label.toLowerCase() ? rawState : ""].filter(Boolean);
+    const sub = [showPower ? fig(c.energy, c.energy_label) : "", fig(c.cost, c.cost_label), rawState && rawState.toLowerCase() !== label.toLowerCase() ? rawState : ""].filter(Boolean);
     // Each part stays whole; on narrow cards they wrap onto a second line instead of being cut off.
     const subs = (parts: string[]) => parts.length ? html`<span class="sub subs">${parts.map((p) => html`<span>${p}</span>`)}</span>` : nothing;
 

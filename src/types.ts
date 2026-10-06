@@ -45,7 +45,8 @@ export interface HomeAssistant {
 
 export type ActionConfig = { action: string; [key: string]: unknown };
 
-export type Layout = "auto" | "compact" | "standard" | "large";
+/** "wide" and "tall" are YAML aliases for whichever size has that shape on the card. */
+export type Layout = "auto" | "compact" | "standard" | "large" | "wide" | "tall";
 
 export interface BaseConfig {
   type: string;

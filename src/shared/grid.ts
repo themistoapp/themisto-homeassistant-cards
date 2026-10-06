@@ -7,7 +7,7 @@ export const rowsToPx = (rows: number) => rows * ROW + (rows - 1) * GAP;
 export const pxToRows = (px: number) => Math.max(1, Math.ceil((px + GAP) / (ROW + GAP)));
 
 export interface GridOptions { columns?: number | "full"; rows?: number | "auto"; min_columns?: number; min_rows?: number; max_rows?: number }
-export type Concrete = Exclude<Layout, "auto">;
+export type Concrete = Exclude<Layout, "auto" | "wide" | "tall">;
 export type Presets = Partial<Record<Concrete, GridOptions>>;
 
 /**
@@ -28,8 +28,22 @@ export function layoutForHeight(presets: Presets, height: number, width = Infini
   return presets.compact ? "compact" : "standard";
 }
 
+/**
+ * Resolves the "wide" and "tall" aliases to the card's own size of that shape: wide is the size
+ * that spans 9+ columns, tall the tallest narrow size. Anything else passes through.
+ */
+export function resolveLayout(presets: Presets, layout: Layout | undefined): Layout | undefined {
+  if (layout !== "wide" && layout !== "tall") return layout;
+  const entries = (Object.entries(presets) as [Concrete, GridOptions][]).filter(([, p]) => typeof p.columns === "number");
+  const pick = layout === "wide"
+    ? entries.find(([, p]) => (p.columns as number) >= 9)
+    : entries.filter(([, p]) => (p.columns as number) < 9 && typeof p.rows === "number").sort((a, b) => (b[1].rows as number) - (a[1].rows as number))[0];
+  return pick ? pick[0] : "auto";
+}
+
 export function gridOptionsFor(presets: Presets, layout: Layout | undefined): GridOptions {
-  const l: Concrete = !layout || layout === "auto" ? "standard" : layout;
+  const r = resolveLayout(presets, layout);
+  const l: Concrete = !r || r === "auto" || r === "wide" || r === "tall" ? "standard" : r;
   const p = presets[l] || presets.standard || {};
   const min = presets.compact || p;
   return { ...p, min_rows: typeof min.rows === "number" ? min.rows : p.min_rows, min_columns: min.min_columns ?? 3 };

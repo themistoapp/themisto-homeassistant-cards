@@ -29,6 +29,16 @@ export function stepTarget(current: number, delta: number, step: number, min: nu
   return clamp(Number(v.toFixed(2)), min, max);
 }
 
+/** Temperatures show to the nearest half degree. Exported for tests. */
+export function half(v: number) { return Math.round(v * 2) / 2; }
+/** "20.5" / "21", or "–". Exported for tests. */
+export function fmtHalf(v: number) { return Number.isFinite(v) ? String(half(v)) : "–"; }
+
+/** Dial angle for a temperature: 300 degrees from −150 (min) to +150 (max). Exported for tests. */
+export function dialAngle(t: number, min: number, max: number) {
+  return -150 + ((clamp(t, min, max) - min) / Math.max(max - min, 1)) * 300;
+}
+
 export class ThemistoThermostatCard extends ThemistoCard<ThermostatConfig> {
   static override presets = { compact: { columns: 6, rows: 2 }, standard: { columns: 6, rows: 4 }, large: { columns: 6, rows: 5 } };
   static override properties = { ...ThemistoCard.properties, _pending: { state: true }, _end: { state: true } };
@@ -40,76 +50,81 @@ export class ThemistoThermostatCard extends ThemistoCard<ThermostatConfig> {
   static override styles = [
     ...ThemistoCard.styles,
     css`
-      /* The dial keeps the round, ticked thermostat face; everything around it is the standard Themisto card. */
-      ha-card.thermostat { --dial-idle: #1c2a47; --dial-off: #3b4d6a; }
-      :host([dark]) ha-card.thermostat { --dial-idle: #15213a; --dial-off: #22304a; }
+      /*
+       * The dial is modelled on the Nest Learning Thermostat (3rd gen): a brushed-steel bezel round a
+       * black glass face that turns orange when heating and blue when cooling, a ring of ticks lit
+       * between the current temperature and the target, the current temperature as a small number
+       * on the ring, and a large light-weight target with the half degree as a superscript.
+       * It is an instrument face, so it is the one place cards use their own type sizes (brand-exception).
+       */
+      /* Like the real thing, the face keeps the same deep orange and blue in light and dark themes. */
+      ha-card.thermostat { --dial-idle: #0b0d11; --dial-off: #0b0d11; --dial-heat: #ef5f12; --dial-cool: #1f74d4; }
       .climate-in { gap: 10px; }
 
       .dial-row { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 14px; }
-      .dial {
-        --dial-size: 132px; position: relative; width: var(--dial-size); height: var(--dial-size); flex: none;
-        display: grid; place-items: center; align-content: center; overflow: hidden; border-radius: 50%; color: #fff;
-        background: radial-gradient(circle at 42% 34%, color-mix(in srgb, var(--face), white 12%), var(--face) 58%, color-mix(in srgb, var(--face), black 18%));
-        box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--face), black 45%), inset 10px 12px 22px rgba(255,255,255,.06), inset -12px -14px 24px rgba(0,0,0,.18), var(--tm-shadow);
-      }
-      .dial::after { content: ""; position: absolute; inset: 7px 20px auto; height: 27%; border-radius: 50%; background: linear-gradient(rgba(255,255,255,.1), transparent); pointer-events: none; }
-      .tick-ring { position: absolute; inset: 9px; border-radius: 50%; background: repeating-conic-gradient(from -118deg, rgba(255,255,255,.72) 0deg 1.1deg, transparent 1.1deg 7.5deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px)); opacity: .42; pointer-events: none; }
-      .active-tick { position: absolute; inset: 7px; z-index: 2; transform: rotate(var(--current-angle)); pointer-events: none; }
-      .active-tick::before { content: ""; position: absolute; top: 0; left: 50%; width: 3px; height: 10px; border-radius: 3px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 5px rgba(255,255,255,.4); }
-      .dial-status { z-index: 1; margin-bottom: 3px; font: 500 9px/1 var(--tm-mono); letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.8); }
-      .dial-target { z-index: 1; font: 900 42px/1 var(--tm-display); padding-block: .06em; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      .dial-target .degree { display: inline-block; margin-left: 1px; font-size: .42em; vertical-align: top; transform: translateY(.1em); }
-      .dial-target.word { font-size: 30px; }
-      .dial-target.range { display: flex; align-items: baseline; gap: 2px; font-size: 24px; }
+      .dial { --dial-size: 132px; --bezel: 5px; position: relative; width: var(--dial-size); height: var(--dial-size); flex: none; border-radius: 50%; padding: var(--bezel);
+        background: conic-gradient(from 200deg, #f4f6f8, #9aa1aa, #e9ecef, #7e858e, #dfe3e7, #a3aab3, #f4f6f8);
+        box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -10px rgba(0,0,0,.55), var(--tm-shadow); }
+      .face { position: relative; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: grid; place-items: center; align-content: center; color: #fff;
+        background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--face), white 14%), var(--face) 55%, color-mix(in srgb, var(--face), black 30%));
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.6), inset 0 6px 14px rgba(0,0,0,.35); transition: background .6s; }
+      /* Glass: a soft highlight across the top of the face. */
+      .face::after { content: ""; position: absolute; inset: 4% 14% auto; height: 34%; border-radius: 50%; background: linear-gradient(rgba(255,255,255,.12), transparent); pointer-events: none; }
+      /* Ticks: 300 degrees of fine marks; .lit repeats them brighter between current and target. */
+      .ticks { position: absolute; inset: 6px; border-radius: 50%; pointer-events: none;
+        background: repeating-conic-gradient(from 0deg, var(--tick) 0deg 0.7deg, transparent 0.7deg 3deg);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 9px)), conic-gradient(from var(--m-from), #000 0deg var(--m-span), transparent var(--m-span));
+        -webkit-mask-composite: source-in; mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 9px)) intersect, conic-gradient(from var(--m-from), #000 0deg var(--m-span), transparent var(--m-span)); }
+      .ticks.all { --tick: rgba(255,255,255,.28); --m-from: -150deg; --m-span: 300deg; }
+      .ticks.lit { --tick: rgba(255,255,255,.95); }
+      .mark { position: absolute; inset: 4px; transform: rotate(var(--a)); pointer-events: none; z-index: 1; }
+      .mark::before { content: ""; position: absolute; top: 0; left: 50%; width: 3px; height: 15px; border-radius: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.5); }
+      .mark.now::before { width: 2px; height: 11px; top: 2px; opacity: .85; }
+      /* Sits on the tick ring beside its own tick, breaking the ticks around it as on the Nest. */
+      .now-t { position: absolute; z-index: 2; transform: translate(-50%, -50%); padding: 1px 3px; border-radius: 99px; background: var(--face); font: 600 10.6px/1 var(--tm-body); font-variant-numeric: tabular-nums; color: #fff; pointer-events: none; }
+      .dial-status { z-index: 1; min-height: 1em; margin-bottom: 2px; font: 600 10.6px/1 var(--tm-body); letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+      .dial-target { z-index: 1; display: flex; align-items: flex-start; font: 300 44px/1 var(--tm-body); letter-spacing: -0.03em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .dial-target sup { font-size: .36em; line-height: 1; margin: .14em 0 0 .06em; letter-spacing: 0; }
+      .dial-target.word { font-size: 26px; font-weight: 400; letter-spacing: .08em; }
+      .dial-target.range { align-items: baseline; gap: 4px; font-size: 26px; }
       .dial-target.range button { font: inherit; opacity: .5; }
       .dial-target.range button[aria-pressed="true"] { opacity: 1; }
-      .dial-current { z-index: 1; margin-top: 5px; color: rgba(255,255,255,.75); font: 500 9.5px/1 var(--tm-mono); letter-spacing: .04em; }
-      .dial-current strong { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
-      .dial-current.pending { color: #fff; }
+      .dial-eco { z-index: 1; height: 16px; margin-top: 3px; color: #6ee7a1; }
+      .dial-eco svg { width: 16px; height: 16px; }
 
-      .seg button { font-size: 12px; }
       .presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
-      .presets button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; overflow: hidden; height: 30px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--tm-line); background: var(--tm-read-2); font: 500 12px var(--tm-body); white-space: nowrap; color: var(--tm-text-2); transition: background 0.15s, border-color 0.15s; }
-      .presets button svg, .presets button ha-icon { width: 14px; height: 14px; flex: none; }
-      .presets button:hover { border-color: var(--tm-line-strong); }
-      .presets button[aria-pressed="true"] { border-color: var(--tm-line-strong); background: var(--tm-accent-soft); color: var(--tm-accent); }
+      .presets .choice { min-width: 0; overflow: hidden; padding: 0 6px; }
+      .presets .choice svg, .presets .choice ha-icon { width: 14px; height: 14px; flex: none; }
 
-      .compact-climate { display: grid; grid-template-columns: 82px minmax(0, 1fr) 34px; align-items: center; gap: 12px; }
-      .compact-climate .dial { --dial-size: 80px; box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--face), black 45%), var(--tm-shadow); }
-      .compact-climate .tick-ring { inset: 6px; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px)); mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px)); }
-      .compact-climate .active-tick { inset: 5px; }
-      .compact-climate .active-tick::before { width: 2px; height: 7px; }
-      .compact-climate .dial-status { font-size: 6.5px; margin-bottom: 1px; }
-      .compact-climate .dial-target { font-size: 24px; }
-      .compact-climate .dial-target.word { font-size: 18px; }
-      .compact-climate .dial-target.range { font-size: 14px; }
-      .compact-climate .dial-current { display: none; }
+      .compact-climate { display: grid; grid-template-columns: 86px minmax(0, 1fr) 36px; align-items: center; gap: 12px; }
+      .compact-climate .dial { --dial-size: 86px; --bezel: 4px; }
+      .compact-climate .ticks { inset: 4px; }
+      .compact-climate .mark { inset: 3px; }
+      .compact-climate .mark::before { height: 10px; width: 2px; }
+      .compact-climate .mark.now, .compact-climate .now-t, .compact-climate .dial-status, .compact-climate .dial-eco { display: none; }
+      .compact-climate .dial-target { font-size: 28px; }
+      .compact-climate .dial-target.word { font-size: 17px; }
+      .compact-climate .dial-target.range { font-size: 16px; }
       .compact-copy { min-width: 0; display: grid; gap: 6px; }
-      .compact-copy .ttl { font-size: 16px; }
-      .compact-reading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: var(--tm-muted); font: 500 10px/1.2 var(--tm-mono); letter-spacing: .06em; text-transform: uppercase; }
-      .compact-reading strong { color: var(--tm-text); font: 900 14px/1 var(--tm-display); letter-spacing: 0; font-variant-numeric: tabular-nums; padding-block: .06em; }
+      .compact-reading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .compact-reading .sv { font-size: var(--tm-fs-card); }
       .compact-stepper { display: grid; gap: 6px; }
 
       ha-card[data-l="large"] .dial { --dial-size: 150px; }
-      ha-card[data-l="large"] .dial-target { font-size: 48px; }
-      @container (max-width: 260px) { .dial-row { gap: 8px; } .dial { --dial-size: 120px; } .dial-row > .rbtn { width: 34px; height: 34px; } }
+      ha-card[data-l="large"] .dial-target { font-size: 50px; }
+      @container (max-width: 260px) { .dial-row { gap: 8px; } .dial { --dial-size: 120px; } }
       @container (max-width: 220px) {
-        /* The dial colour already shows the state; the chip would wrap and squeeze the dial. */
-        .hd .chip { display: none; }
         .dial-row { position: relative; gap: 0; }
-        .dial-row > .rbtn { position: absolute; z-index: 3; bottom: 1px; width: 30px; height: 30px; background: var(--tm-read); }
+        .dial-row > .rbtn { position: absolute; z-index: 3; bottom: 1px; background: var(--tm-read); }
         .dial-row > .rbtn:first-child { left: 0; } .dial-row > .rbtn:last-child { right: 0; }
         .dial, ha-card[data-l="large"] .dial { --dial-size: 112px; }
-        ha-card[data-l="large"] .dial-target { font-size: 40px; }
-        .presets button span { display: none; }
-        .presets button svg, .presets button ha-icon { display: block; }
-        .compact-climate { grid-template-columns: minmax(0, 1fr) 30px; gap: 8px; }
-        .compact-climate .dial { --dial-size: 74px; justify-self: center; }
-        .compact-climate .dial-target { font-size: 22px; }
+        ha-card[data-l="large"] .dial-target, .dial-target { font-size: 38px; }
+        .presets .choice span { display: none; }
+        .compact-climate { grid-template-columns: minmax(0, 1fr) 36px; gap: 8px; }
+        .compact-climate .dial { --dial-size: 80px; justify-self: center; }
         .compact-copy { display: none; }
-        .compact-stepper .rbtn { width: 30px; height: 30px; }
       }
-      @container (min-width: 221px) and (max-width: 360px) { .presets button svg, .presets button ha-icon { display: none; } }
+      @container (min-width: 221px) and (max-width: 360px) { .presets .choice svg, .presets .choice ha-icon { display: none; } }
     `,
   ];
 
@@ -136,7 +151,7 @@ export class ThemistoThermostatCard extends ThemistoCard<ThermostatConfig> {
           temperature: { ...numberField("temperature", 5, 35, 0.5, "°"), label: "Temperature", required: true },
           hvac_mode: { ...choose("hvac_mode", modeOpts), label: "Also set mode (optional)" },
         }, "name", "temperature")], { icon: "mdi:star-outline" }),
-        appearance(["compact", "standard", "large"], [numberField("step", 0.1, 5, 0.1, "°")]),
+        appearance(["compact", "standard", ["large", "Tall"]], [numberField("step", 0.1, 5, 0.1, "°")]),
         section("Colours", [grid(colour("heating_colour"), colour("cooling_colour")), grid(colour("idle_colour"), colour("off_colour"))], { icon: "mdi:palette" }),
         actions(),
       ],
@@ -200,41 +215,53 @@ export class ThemistoThermostatCard extends ThemistoCard<ThermostatConfig> {
     const off = s.state === "off";
     const range = s.state === "heat_cool" && a.target_temp_low !== undefined;
     const p = this._pending;
-    const step = c.step || num(a.target_temp_step, 0.5);
-    const dec = step < 1 ? 1 : 0;
-    const f = (v: number) => (Number.isFinite(v) ? v.toFixed(dec) : "–");
+    const f = fmtHalf;
     const target = p?.t ?? num(a.temperature);
     const low = p?.low ?? num(a.target_temp_low), high = p?.high ?? num(a.target_temp_high);
     const action = String(a.hvac_action || (off ? "off" : "idle"));
-    const col = { heating: this.colour(c.heating_colour, "var(--tm-heat)"), preheating: this.colour(c.heating_colour, "var(--tm-heat)"), cooling: this.colour(c.cooling_colour, "var(--tm-cool)"), off: this.colour(c.off_colour, "var(--tm-muted)") }[action] || this.colour(c.idle_colour, "var(--tm-idle)");
+    const col = { heating: this.colour(c.heating_colour, "var(--dial-heat)"), preheating: this.colour(c.heating_colour, "var(--dial-heat)"), cooling: this.colour(c.cooling_colour, "var(--dial-cool)"), off: this.colour(c.off_colour, "var(--tm-muted)") }[action] || this.colour(c.idle_colour, "var(--tm-idle)");
     const actionText = this.hass?.formatEntityAttributeValue ? this.hass.formatEntityAttributeValue(s, "hvac_action", action) : cap(action);
     const hum = c.humidity_entity ? num(this.stateOf(c.humidity_entity)?.state) : num(a.current_humidity);
     const current = num(a.current_temperature);
-    const dialNow = c.show_current !== false && Number.isFinite(current) ? html`Current <strong>${f(current)}°</strong>` : nothing;
     const pend = !!p;
-    const face = action === "heating" || action === "preheating" || action === "cooling" ? col : action === "off" ? (c.off_colour ? col : "var(--dial-off)") : (c.idle_colour ? col : "var(--dial-idle)");
+    const active = action === "heating" || action === "preheating" || action === "cooling";
+    const face = active ? col : action === "off" ? (c.off_colour ? col : "var(--dial-off)") : (c.idle_colour ? col : "var(--dial-idle)");
     const min = num(a.min_temp, 7), max = num(a.max_temp, 35);
-    const angle = Number.isFinite(current) ? -118 + ((clamp(current, min, max) - min) / Math.max(max - min, 1)) * 236 : -118;
-    const chip = html`<span class="chip" style="--cc:${off ? "var(--tm-idle)" : col}"><i></i>${actionText}</span>`;
-    const dialStyle = `--state:${col};--face:${face};--current-angle:${angle}deg`;
-    const btn = (d: number) => html`<button class="rbtn ${this.cardLayout === "compact" ? "sm" : ""}" ?disabled=${off} @click=${() => this.bump(s, d, range)} aria-label=${d < 0 ? "Lower target" : "Raise target"}>${icon(d < 0 ? "minus" : "plus")}</button>`;
+    const showNow = c.show_current !== false && Number.isFinite(current);
+    const aNow = showNow ? dialAngle(current, min, max) : NaN;
+    const aSet = off ? NaN : range ? dialAngle(this._end === "low" ? low : high, min, max) : dialAngle(target, min, max);
+    // Lit ticks run between the current temperature and the target.
+    const lit = Number.isFinite(aNow) && Number.isFinite(aSet) ? { from: Math.min(aNow, aSet), span: Math.abs(aSet - aNow) } : undefined;
+    // The current temperature's number sits on the tick ring, 11 degrees beside its own tick, on the
+    // side away from the target so the lit arc stays clear.
+    const side = Number.isFinite(aSet) && aSet < aNow ? 1 : -1;
+    const rad = ((aNow + side * 11) * Math.PI) / 180;
+    const nowPos = showNow ? `left:calc(50% + (var(--dial-size) / 2 - var(--bezel) - 11px) * ${Math.sin(rad).toFixed(4)});top:calc(50% - (var(--dial-size) / 2 - var(--bezel) - 11px) * ${Math.cos(rad).toFixed(4)})` : "";
+    const dialStyle = `--state:${col};--face:${face}`;
+    const btn = (d: number) => html`<button class="rbtn ${this.cardLayout === "compact" ? "" : "lg"}" ?disabled=${off} @click=${() => this.bump(s, d, range)} aria-label=${d < 0 ? "Lower target" : "Raise target"}>${icon(d < 0 ? "minus" : "plus")}</button>`;
+    const big = (v: number) => { const h = half(v); return Number.isFinite(h) ? html`${Math.floor(h)}${h % 1 ? html`<sup>5</sup>` : nothing}` : "–"; };
     const dialTarget = off
       ? html`<div class="dial-target word">OFF</div>`
       : range
-        ? html`<div class="dial-target range"><button aria-pressed=${this._end === "low"} @click=${() => (this._end = "low")} aria-label="Edit low target">${f(low)}</button><span>–</span><button aria-pressed=${this._end === "high"} @click=${() => (this._end = "high")} aria-label="Edit high target">${f(high)}</button><span class="degree">°</span></div>`
-        : html`<div class="dial-target">${f(target)}<span class="degree">°</span></div>`;
-    const dial = html`<div class="dial" style=${dialStyle}>
-      <div class="tick-ring" aria-hidden="true"></div><div class="active-tick" aria-hidden="true"></div>
-      <div class="dial-status">${pend ? "Sending" : off ? "" : "Target"}</div>${dialTarget}
-      ${dialNow ? html`<div class="dial-current ${pend ? "pending" : ""}">${dialNow}</div>` : nothing}
-    </div>`;
+        ? html`<div class="dial-target range"><button aria-pressed=${this._end === "low"} @click=${() => (this._end = "low")} aria-label="Edit low target">${f(low)}</button><span>•</span><button aria-pressed=${this._end === "high"} @click=${() => (this._end = "high")} aria-label="Edit high target">${f(high)}</button></div>`
+        : html`<div class="dial-target" aria-label="Target ${f(target)}°">${big(target)}</div>`;
+    const status = pend ? "Sending" : active ? actionText : "";
+    const eco = String(a.preset_mode || "").toLowerCase() === "eco";
+    const dial = html`<div class="dial" style=${dialStyle} role="img" aria-label="${status || (off ? "Off" : "Idle")}${showNow ? `, currently ${f(current)}°` : ""}"><div class="face">
+      <div class="ticks all" aria-hidden="true"></div>
+      ${lit ? html`<div class="ticks lit" aria-hidden="true" style="--m-from:${lit.from}deg;--m-span:${lit.span}deg"></div>` : nothing}
+      ${Number.isFinite(aSet) ? html`<div class="mark" style="--a:${aSet}deg" aria-hidden="true"></div>` : nothing}
+      ${showNow ? html`<div class="mark now" style="--a:${aNow}deg" aria-hidden="true"></div><span class="now-t" style=${nowPos} aria-hidden="true">${f(current)}</span>` : nothing}
+      <div class="dial-status">${status}</div>${dialTarget}
+      <div class="dial-eco">${eco ? icon("leaf") : nothing}</div>
+    </div></div>`;
 
     if (this.cardLayout === "compact") {
       return this.shell(html`<div class="in compact-climate" style=${dialStyle}>
         ${dial}
         <div class="compact-copy">${name ? html`<span class="ttl">${name}</span>` : nothing}
-          ${c.show_current !== false && Number.isFinite(current) ? html`<div class="compact-reading"><span>Current</span><strong>${f(current)}°</strong></div>` : nothing}
-          ${c.show_humidity !== false && Number.isFinite(hum) ? html`<div class="compact-reading"><span>Humidity</span><strong>${Math.round(hum)}%</strong></div>` : nothing}
+          ${showNow ? html`<div class="compact-reading"><span class="label">Current</span><span class="sv">${f(current)}°</span></div>` : nothing}
+          ${c.show_humidity !== false && Number.isFinite(hum) ? html`<div class="compact-reading"><span class="label">Humidity</span><span class="sv">${Math.round(hum)}%</span></div>` : nothing}
         </div>
         <div class="compact-stepper">${btn(1)}${btn(-1)}</div>
       </div>`, { cls: "thermostat", style: dialStyle });
@@ -245,11 +272,11 @@ export class ThemistoThermostatCard extends ThemistoCard<ThermostatConfig> {
     const showModes = c.show_modes !== false && modes.length > 1;
     const presets = this.cardLayout === "large" && c.show_presets !== false ? c.presets || [] : [];
     return this.shell(html`<div class="in climate-in" style=${dialStyle}>
-      ${this.header(this.t(c.kicker, "Thermostat"), name, chip)}
+      ${this.header(this.t(c.kicker, "Thermostat"), name)}
       <div class="dial-row">${btn(-1)}${dial}${btn(1)}</div>
       ${showModes ? html`<div class="seg" role="group" aria-label="Mode">${modes.map((m) => html`<button aria-pressed=${s.state === m.mode}
         @click=${() => this.call("climate", "set_hvac_mode", { entity_id: c.entity, hvac_mode: m.mode })}>${m.label || this.hass?.formatEntityState?.(s, m.mode) || MODE_LABEL[m.mode] || cap(m.mode)}</button>`)}</div>` : nothing}
-      ${presets.length ? html`<div class="presets">${presets.map((pr) => html`<button aria-pressed=${!off && num(a.temperature) === pr.temperature && (!pr.hvac_mode || pr.hvac_mode === s.state)} title="${pr.name} · ${f(pr.temperature)}°"
+      ${presets.length ? html`<div class="presets">${presets.map((pr) => html`<button class="choice" aria-pressed=${!off && num(a.temperature) === pr.temperature && (!pr.hvac_mode || pr.hvac_mode === s.state)} title="${pr.name} · ${f(pr.temperature)}°"
         @click=${() => { clearTimeout(this._pending?.timer); this._pending = undefined; this.call("climate", "set_temperature", { entity_id: c.entity, temperature: pr.temperature, ...(pr.hvac_mode ? { hvac_mode: pr.hvac_mode } : off ? { hvac_mode: supported.find((m) => m !== "off") } : {}) }); }}>
         ${pr.icon ? icon(pr.icon) : nothing}<span>${pr.name}</span></button>`)}</div>` : nothing}
     </div>`, { cls: "thermostat", style: dialStyle });

@@ -41,14 +41,15 @@ export class ThemistoStatusBadge extends LitElement {
 
   static override styles = [tokens, css`
     :host { display: inline-flex; height: auto; max-width: 100%; }
-    button { font: inherit; color: var(--tm-text); display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 42px; padding: 6px 12px 6px 7px;
-      border: 1px solid color-mix(in srgb, var(--bc) 30%, var(--tm-line)); border-radius: 999px; background: color-mix(in srgb, var(--bc) 8%, var(--tm-read));
-      box-shadow: var(--tm-shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    /* The brand's hero pill: tinted fill and outline in the badge's colour. */
+    button { font: inherit; color: var(--tm-text); display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 40px; padding: 5px 14px 5px 6px;
+      border: 1px solid color-mix(in srgb, var(--bc) 40%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--bc) 14%, var(--tm-read));
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     button:focus-visible { outline: 2px solid var(--tm-accent); outline-offset: 2px; }
-    .i { display: grid; place-items: center; flex: 0 0 29px; width: 29px; height: 29px; border-radius: 50%; color: var(--bc); background: color-mix(in srgb, var(--bc) 15%, transparent); }
+    .i { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; color: var(--bc); background: color-mix(in srgb, var(--bc) 15%, transparent); }
     .i svg, .i ha-icon { width: 15px; height: 15px; --mdc-icon-size: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .t { min-width: 0; } strong, small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    strong { font: 650 12px/1.1 var(--tm-body); } small { margin-top: 3px; font: 9px/1 var(--tm-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--tm-muted); }
+    strong { font: 600 var(--tm-fs-body)/1.15 var(--tm-body); } small { margin-top: 3px; font: 400 var(--tm-fs-label)/1 var(--tm-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tm-muted); }
   `];
 
   setConfig(c: BadgeConfig) {

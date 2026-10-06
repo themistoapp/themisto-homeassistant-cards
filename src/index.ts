@@ -1,6 +1,7 @@
 import { registerFonts } from "./shared/fonts";
 import { ThemistoChargerCard } from "./cards/charger";
 import { ThemistoEnergyCard } from "./cards/energy";
+import { ThemistoHeadingCard } from "./cards/heading";
 import { ThemistoLightCard } from "./cards/light";
 import { ThemistoLightListCard } from "./cards/light-list";
 import { ThemistoMediaCard } from "./cards/media";
@@ -11,12 +12,13 @@ import { ThemistoThermostatCard } from "./cards/thermostat";
 import { ThemistoUnifiCard } from "./cards/unifi";
 import { ThemistoVehicleCard } from "./cards/vehicle";
 
-export const VERSION = "2.13.0";
+export const VERSION = "2.14.0";
 const DOCS = "https://github.com/sjbradley98/themisto-cards";
 
 registerFonts();
 
 const CARDS: [string, CustomElementConstructor, string, string][] = [
+  ["themisto-heading-card", ThemistoHeadingCard, "Themisto Heading", "A page or section title with live status pills"],
   ["themisto-thermostat-card", ThemistoThermostatCard, "Themisto Thermostat", "Target temperature, modes and your own presets"],
   ["themisto-sensor-card", ThemistoSensorCard, "Themisto Sensor", "A big reading with a history graph and side stats"],
   ["themisto-energy-card", ThemistoEnergyCard, "Themisto Energy", "Grid, solar, battery and home power with your battery unit's picture"],

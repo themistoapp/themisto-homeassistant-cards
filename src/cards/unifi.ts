@@ -39,7 +39,7 @@ export class ThemistoUnifiCard extends ThemistoCard<UnifiConfig> {
     css`
       .tp2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
       .tpb { display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: 0; }
-      .tpb .hero { --hero: 28px; }
+      .tpb .hero { --hero: var(--tm-fs-card); }
       .tpb tm-graph { min-height: 22px; }
       .cl { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 8px; }
       .cl .sv { display: flex; align-items: center; gap: 5px; }
@@ -49,8 +49,9 @@ export class ThemistoUnifiCard extends ThemistoCard<UnifiConfig> {
       .uw > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
       .uw .cl { grid-template-columns: 1fr 1fr; row-gap: 10px; }
       .uw .hd { flex-direction: column; gap: 6px; }
-      @container (max-width: 280px) { .cl .kick { display: none; } .tpb .hero { --hero: 20px; } .tpb .u { display: block; margin: 2px 0 0; } .tp2 { gap: 10px; } }
-      @container (max-width: 240px) { .cl .sv svg { display: none; } .cl .sv { font-size: 14px; } .cmp .chip, .cmp .clients { display: none; } .cmp .sv { font-size: 13px !important; } }
+      @container (max-width: 280px) { .cl .kick { display: none; } .tpb .u { display: block; margin: 2px 0 0; } .tp2 { gap: 10px; } }
+      @container (max-width: 240px) { .cl .sv svg { display: none; } .cl .sv { font-size: var(--tm-fs-body); } .cmp .chip, .cmp .clients { display: none; } .cmp .sv { font-size: var(--tm-fs-small) !important; } }
+      @container (max-width: 200px) { .cmp .sv .u { display: none; } }
       @container (max-width: 560px) { .uw { grid-template-columns: 1fr 1fr; } .uw > .uw-cl, .uw > .uw-st { display: none; } }
     `,
   ];
@@ -130,12 +131,12 @@ export class ThemistoUnifiCard extends ThemistoCard<UnifiConfig> {
     const threshold = c.latency_threshold ?? 50;
     let chip: unknown = nothing, col = "var(--tm-accent)";
     if (online !== undefined || Number.isFinite(latency)) {
-      const ms = Number.isFinite(latency) ? ` · ${Math.round(latency)} ms` : "";
+      const ms = Number.isFinite(latency) && online !== false ? html`<span class="more"> · ${Math.round(latency)} ms</span>` : nothing;
       const [txt, cc] = online === false ? ["Offline", this.colour(c.offline_colour, "var(--tm-bad)")]
-        : latency > threshold ? [`Degraded${ms}`, this.colour(c.degraded_colour, "var(--tm-warn)")]
-        : [`Online${ms}`, this.colour(c.online_colour, "var(--tm-ok)")];
+        : latency > threshold ? ["Degraded", this.colour(c.degraded_colour, "var(--tm-warn)")]
+        : ["Online", this.colour(c.online_colour, "var(--tm-ok)")];
       col = cc;
-      chip = html`<button class="chip" style="--cc:${cc}" @click=${() => this.elementAction(c.wan_status || c.latency)}><i></i>${txt}</button>`;
+      chip = html`<button class="chip" style="--cc:${cc}" @click=${() => this.elementAction(c.wan_status || c.latency)}><i></i>${txt}${ms}</button>`;
     }
     const ispS = this.stateOf(c.isp), ipS = this.stateOf(c.wan_ip);
     const isp = this.t(c.isp_text, ispS && !isUnavailable(ispS) ? ispS.state : "");
@@ -145,7 +146,7 @@ export class ThemistoUnifiCard extends ThemistoCard<UnifiConfig> {
     const name = this.t(c.name, "Network"), kicker = this.t(c.kicker, "UniFi");
     const showSpark = c.show_sparklines !== false;
     const tpb = (label: string, id: string | undefined, r: { value: string; unit: string } | undefined, colr: string) =>
-      r ? html`<div class="tpb" style="--c:${colr}"><span class="kick">${label}</span><span class="hero">${r.value}<span class="u">${r.unit}</span></span>
+      r ? html`<div class="tpb" style="--c:${colr}"><span class="label">${label}</span><span class="hero">${r.value}<span class="u">${r.unit}</span></span>
         ${showSpark && this._spark[id!] ? html`<tm-graph style="--graph-color:${colr}" .values=${this._spark[id!]} type="area"></tm-graph>` : nothing}</div>` : nothing;
     const dCol = this.colour(c.download_colour, "var(--tm-accent)"), uCol = this.colour(c.upload_colour, "var(--tm-ok)");
     const clients = ([
@@ -161,7 +162,7 @@ export class ThemistoUnifiCard extends ThemistoCard<UnifiConfig> {
       return this.shell(html`<div class="in cmp" style="justify-content:space-between">
         <div class="row"><span class="itile sm">${icon(c.icon, "router")}</span><div class="sp"><div class="nm">${name}</div>${subline ? html`<div class="sub">${subline}</div>` : nothing}</div>${chip}</div>
         <div class="row" style="justify-content:space-between">
-          ${down || up ? html`<span class="sv" style="font-size:15px">${down ? html`↓ ${down.value}<span class="u" style="margin:0 8px 0 3px">${down.unit}</span>` : nothing}${up ? html`↑ ${up.value}<span class="u" style="margin-left:3px">${up.unit}</span>` : nothing}</span>` : html`<span></span>`}
+          ${down || up ? html`<span class="sv">${down ? html`↓ ${down.value}<span class="u" style="margin:0 8px 0 3px">${down.unit}</span>` : nothing}${up ? html`↑ ${up.value}<span class="u" style="margin-left:3px">${up.unit}</span>` : nothing}</span>` : html`<span></span>`}
           ${total && Number.isFinite(total.v) ? html`<span class="sub clients" style="flex:none">${fmtNumber(this._hass, total.v!, 0)} clients</span>` : nothing}
         </div></div>`, { c: col, na });
     }
