@@ -75,3 +75,9 @@ npm run dev     # harness with a mock Home Assistant: every card at every size, 
 npm test        # unit tests
 npm run build   # dist/themisto-cards.js
 ```
+
+## Releases
+
+The public GitHub repository is the HACS source of truth. Push a version tag matching
+`package.json` (for example `v2.14.0`) to run tests, build the single JavaScript bundle, and attach it
+to a GitHub Release. Do not copy generated bundles into the themisto.app website repository.
